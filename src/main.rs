@@ -1,45 +1,21 @@
-use std::env;
-
-use serenity::async_trait;
-use serenity::cache::Cache;
-use serenity::framework::standard::macros::{command, group};
-use serenity::framework::standard::{CommandResult, StandardFramework};
-use serenity::model::channel::Message;
-use serenity::model::gateway::Ready;
-use serenity::model::prelude::Role;
-use serenity::prelude::*;
-use serenity::utils::MessageBuilder;
+use serenity::{
+    async_trait,
+    framework::standard::{
+        macros::{command, group},
+        CommandResult, StandardFramework,
+    },
+    model::{channel::Message, gateway::Ready, prelude::Role},
+    prelude::*,
+};
 
 #[group]
-#[commands(ping)]
+#[commands(challenge)]
 struct General;
 
 struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
-    async fn message(&self, context: Context, msg: Message) {
-        if msg.content == "Say something, Tews!" {
-            let channel = match msg.channel_id.to_channel(&context).await {
-                Ok(channel) => channel,
-                Err(why) => {
-                    println!("Error: {:?}", why);
-                    return;
-                }
-            };
-
-            let response = MessageBuilder::new()
-                .push("Fine. Something. You happy, ")
-                .push_bold_safe(&msg.author.name)
-                .push("?")
-                .build();
-
-            if let Err(why) = msg.channel_id.say(&context.http, &response).await {
-                println!("Error: {:?}", why);
-            }
-        };
-    }
-
     async fn ready(&self, _: Context, ready: Ready) {
         println!("{} is active!", ready.user.name);
     }
@@ -66,25 +42,70 @@ async fn main() {
     }
 }
 
-#[command]
-async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.reply(ctx, "Pong!").await?;
-
-    Ok(())
-}
-
 /// Will challenge another discord user. A user cannot be challenged
 /// if it has the "On Hiatus" role, or is already challenged by someone
 /// else.
-#[command] 
+#[command]
 async fn challenge(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.reply(ctx, "Challenged.").await?;
+    if let None = msg.guild_id {
+        msg.channel_id.say(ctx, "No.").await?;
+        return Ok(());
+    };
 
-    // let cache = Cache::new();
-    // let roles = cache.guild_roles(msg.guild_id.unwrap()).unwrap();
-    // println!("{:#?}", roles);
+    // Checks if tews has the right perms.
+    let guild_id = msg.guild_id.unwrap();
+    let roles = guild_id.roles(ctx).await?;
 
-    // msg.reply(ctx, "Hello.").await?;
+    let tews_role: Vec<&Role> = roles
+        .values()
+        .filter(|r| r.name == "tews-circuit")
+        .collect();
+
+    if tews_role.len() == 0 {
+        msg.channel_id.say(ctx, "tews-circuit role not found. This should be impossible. Please contact the developer.").await?;
+        return Ok(());
+    }
+
+    if !tews_role[0].permissions.manage_roles() {
+        msg.channel_id
+            .say(
+                ctx,
+                "tews-circuit does not have permissions to manage roles.",
+            )
+            .await?;
+        return Ok(());
+    }
+
+    let mentions = msg.mentions.len();
+    if mentions > 1 {
+        msg.channel_id
+            .say(ctx, "You may only challenge one person at a time.")
+            .await?;
+
+        return Ok(());
+    } else if mentions == 0 {
+        msg.channel_id
+            .say(ctx, "You can't challenge no one.")
+            .await?;
+
+        return Ok(());
+    }
+
+    let user_to_challenge = &msg.mentions[0];
+    let notice = format!(
+        "You have a challenger! You are challenged by {}.",
+        msg.author
+    );
+
+    user_to_challenge
+        .direct_message(&ctx, |m| m.content(notice))
+        .await?;
+
+    let notice = format!(
+        "{} has been notified of this challenge.",
+        user_to_challenge.name
+    );
+    msg.reply(&ctx, notice).await?;
 
     Ok(())
 }
