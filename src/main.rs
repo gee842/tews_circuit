@@ -1,4 +1,4 @@
-use poise::serenity_prelude as serenity;
+use poise::serenity_prelude::{self as serenity, CreateSelectMenu, SelectMenu, CreateSelectMenuOption};
 
 struct Data {} // User data, which is stored and accessible in all command invocations
 type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -47,6 +47,20 @@ async fn challenge(
     let notice = format!("{} has been notified. Please be patient.", user.name);
     ctx.author().dm(ctx, |m| m.content(notice)).await?;
 
+    Ok(())
+}
+
+#[poise::command(context_menu_command = "User information", slash_command)]
+async fn user_info(
+    ctx: Context<'_>,
+    #[description = "Discord profile to query information about"] user: serenity::User,
+) -> Result<(), Error> {
+    let mut select_menu = CreateSelectMenu::default();
+    select_menu.options(|options| {
+        let opt = CreateSelectMenuOption::new("Hello", "Bro");
+        options.set_options(vec![opt])});
+
+    _ = select_menu.build();
     Ok(())
 }
 
