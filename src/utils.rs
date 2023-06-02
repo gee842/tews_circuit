@@ -1,0 +1,59 @@
+use super::Data;
+
+use poise::serenity_prelude as serenity;
+
+type Error = Box<dyn std::error::Error + Send + Sync>;
+type Context<'a> = poise::Context<'a, Data, Error>;
+
+#[poise::command(prefix_command)]
+pub async fn register(ctx: Context<'_>) -> Result<(), Error> {
+    poise::builtins::register_application_commands_buttons(ctx).await?;
+
+    Ok(())
+}
+
+// Example for creating a select menu is here.
+#[poise::command(slash_command, prefix_command)]
+pub async fn foo(ctx: Context<'_>) -> Result<(), Error> {
+    ctx.say("Executing").await?;
+
+    let uuid_boop = ctx.id();
+
+    // Create and send the menu.
+    ctx.send(|m| {
+        m.content("The current scoreboard").components(|c| {
+            c.create_action_row(|ar| {
+                ar.create_button(|b| {
+                    b.style(serenity::ButtonStyle::Primary)
+                        .label("Boop me!")
+                        .custom_id(uuid_boop)
+                })
+            })
+        })
+    })
+    .await?;
+
+    // The responsive part
+    let mut boop_count = 0;
+    while let Some(mci) = serenity::CollectComponentInteraction::new(ctx)
+        .author_id(ctx.author().id)
+        .channel_id(ctx.channel_id())
+        .timeout(std::time::Duration::from_secs(120))
+        .filter(move |mci| mci.data.custom_id == uuid_boop.to_string())
+        .await
+    {
+        boop_count += 1;
+
+        let mut msg = mci.message.clone();
+        msg.edit(ctx, |m| m.content(format!("Boop count: {}", boop_count)))
+            .await?;
+
+        mci.create_interaction_response(ctx, |ir| {
+            ir.kind(serenity::InteractionResponseType::DeferredUpdateMessage)
+        })
+        .await?;
+    }
+
+    Ok(())
+}
+
