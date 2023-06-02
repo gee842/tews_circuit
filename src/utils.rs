@@ -1,4 +1,4 @@
-use super::Data;
+use super::*;
 
 use poise::serenity_prelude as serenity;
 
@@ -10,6 +10,30 @@ pub async fn register(ctx: Context<'_>) -> Result<(), Error> {
     poise::builtins::register_application_commands_buttons(ctx).await?;
 
     Ok(())
+}
+
+pub async fn role_management(ctx: Context<'_>) {
+    let guild_id = ctx.guild_id().unwrap();
+    let channel = ctx.channel_id();
+
+    let roles = guild_id.roles(ctx).await.unwrap();
+    let tews_role: Vec<&serenity::Role> = roles
+        .values()
+        .filter(|r| r.name == "tews-circuit")
+        .collect();
+
+    if tews_role.len() == 0 {
+        channel.say(ctx, "tews-circuit role not found. This should be impossible. Please contact the developer.").await.unwrap();
+    }
+
+    if !tews_role[0].permissions.manage_roles() {
+        channel
+            .say(
+                ctx,
+                "tews-circuit does not have permissions to manage roles.",
+            )
+            .await.unwrap();
+    }
 }
 
 // Example for creating a select menu is here.
@@ -56,4 +80,3 @@ pub async fn foo(ctx: Context<'_>) -> Result<(), Error> {
 
     Ok(())
 }
-
