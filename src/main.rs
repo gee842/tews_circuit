@@ -4,6 +4,8 @@ use challenge::*;
 mod utils;
 use utils::*;
 
+mod db;
+
 use std::collections::HashSet;
 
 use poise::serenity_prelude::{self as serenity, UserId};
@@ -22,7 +24,7 @@ async fn main() {
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![challenge(), register(), foo()],
+            commands: vec![challenge(), register(), foo(), open_database()],
             skip_checks_for_owners: false,
             prefix_options: poise::PrefixFrameworkOptions {
                 prefix: Some("-".into()),
