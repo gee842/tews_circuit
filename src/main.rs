@@ -9,13 +9,30 @@ mod db;
 use std::collections::HashSet;
 
 use poise::serenity_prelude::{self as serenity, UserId};
+use serenity::GatewayIntents;
 
 pub struct Data {} // User data, which is stored and accessible in all command invocations
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
+fn database_setup() {
+    db::Connection::new();
+}
+
 #[tokio::main]
 async fn main() {
+    database_setup();
+    bot().await;
+}
+
+async fn bot() {
+    database_setup();
+
+    let intents = GatewayIntents::GUILD_MESSAGES
+        | GatewayIntents::DIRECT_MESSAGES
+        | GatewayIntents::MESSAGE_CONTENT
+        | GatewayIntents::GUILD_MESSAGE_REACTIONS;
+
     let mut owners = HashSet::new();
     // Alph's main account
     owners.insert(UserId(275797064674312193));
@@ -24,7 +41,7 @@ async fn main() {
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![challenge(), register(), foo(), open_database()],
+            commands: vec![challenge(), register()],
             skip_checks_for_owners: false,
             prefix_options: poise::PrefixFrameworkOptions {
                 prefix: Some("-".into()),
@@ -36,7 +53,7 @@ async fn main() {
             ..Default::default()
         })
         .token(std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN"))
-        .intents(serenity::GatewayIntents::non_privileged())
+        .intents(intents)
         .setup(|ctx, _ready, framework| {
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
