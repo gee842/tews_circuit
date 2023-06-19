@@ -1,4 +1,4 @@
-use sqlite::{self, Connection as DbConn, State};
+use sqlite::{self, Connection as DbConn, Error as SqliteError, State};
 
 pub struct Connection {
     conn: DbConn,
@@ -10,27 +10,28 @@ impl Connection {
         let query = "
             PRAGMA foreign_keys = ON;
 
-            CREATE TABLE IF NOT EXISTS Matches (
-                Challenger TEXT,
-                Challenged TEXT,
-                Match_time TEXT,
-                Winner TEXT
-            );
-
             CREATE TABLE IF NOT EXISTS History (
-                UID TEXT PRIMARY KEY,
-                Name TEXT,
-                Clan TEXT,
-                Win INTEGER,
-                Loss INTEGER,
-                Disqualified INTEGER,
-                Points INTEGER
+                Challenger	TEXT,
+                Challenged	TEXT,
+                Date	TEXT,
+                Finished	INTEGER,
+                Winner	TEXT,
+                FOREIGN KEY(Challenger) REFERENCES Players(UID)
             );
 
-            CREATE TABLE IF NOT EXISTS Rank (
-                UID TEXT,
-                Rank TEXT,
-                FOREIGN KEY (UID) REFERENCES History(UID)
+            CREATE TABLE IF NOT EXISTS Players (
+                UID	TEXT,
+                Win	INTEGER,
+                Loss	INTEGER,
+                Disqualifications	INTEGER,
+                Rank	TEXT,
+                Points	INTEGER,
+                PRIMARY KEY(UID)
+            );
+
+            CREATE TABLE IF NOT EXISTS Ranks (
+                Name	TEXT,
+                PRIMARY KEY(Name)
             );
         ";
 
@@ -44,60 +45,75 @@ impl Connection {
     }
 }
 
-// Implement funtions related to writing to the challenges table.
 impl Connection {
-    pub fn new_challenge(&mut self, challenger: &str, challenged: &str, match_time: &str) {
-        let query = "INSERT INTO Matches VALUES (:challenger, :challenged, :match_time, :winner);";
-        let mut stmt = self.conn.prepare(query).unwrap();
+    /// Creates a new entry in the History table.
+    pub fn new_challenge(
+        &mut self,
+        challenger: &str,
+        challenged: &str,
+        date: &str,
+    ) -> Result<(), SqliteError> {
+        // Checks if both players exist in the db.
+        if !self.player_exists(challenger)? {
+            self.add_player(challenger)?;
+        }
 
-        stmt.bind((":challenger", challenger)).unwrap();
-        stmt.bind((":challenged", challenged)).unwrap();
-        stmt.bind((":match_time", match_time)).unwrap();
-        stmt.bind((":winner", "N/A")).unwrap();
+        if !self.player_exists(challenged)? {
+            self.add_player(challenged)?;
+        }
+
+        let query =
+            "INSERT INTO History VALUES (:Challenger, :Challenged, :Date, :Finished, :Winner);";
+        let mut stmt = self.conn.prepare(query)?;
+
+        stmt.bind((":Challenger", challenger))?;
+        stmt.bind((":Challenged", challenged))?;
+        stmt.bind((":Date", date))?;
+        stmt.bind((":Finished", 0))?;
+        stmt.bind((":Winner", "N/A"))?;
 
         while let Ok(State::Row) = stmt.next() {}
         println!("Added entry to challenges table.");
+
+        Ok(())
+    }
+
+    pub fn challenge_finished(&mut self, challenger: &str, challenged: &str) {
+        todo!();
     }
 }
 
-// Implement funtions related to writing to the history table.
 impl Connection {
-    pub fn new_history(
-        &mut self,
-        name: &str,
-        uid: &str,
-        clan: &str,
-        win: &str,
-        loss: &str,
-        disqualified: &str,
-        points: &str,
-    ) {
-        let query =
-            "INSERT INTO History VALUES (:name, :uid, :clan, :win, :loss, :disqualified, :points);";
+    fn add_player(&mut self, user_id: &str) -> Result<(), SqliteError> {
+        let query = "INSERT INTO Players VALUES (:user_id, :win, :loss, :disqualifications, :rank, :points)";
         let mut stmt = self.conn.prepare(query).unwrap();
 
-        stmt.bind((":name", name)).unwrap();
-        stmt.bind((":uid", uid)).unwrap();
-        stmt.bind((":clan", clan)).unwrap();
-        stmt.bind((":win", win)).unwrap();
-        stmt.bind((":loss", loss)).unwrap();
-        stmt.bind((":disqualified", disqualified)).unwrap();
-        stmt.bind((":points", points)).unwrap();
+        stmt.bind((":UID", user_id))?;
+        stmt.bind((":Win", 0))?;
+        stmt.bind((":Loss", 0))?;
+        stmt.bind((":Disqualifications", 0))?;
+        stmt.bind((":Rank", "Unrated"))?;
+        stmt.bind((":Points", 900))?;
 
-        while let Ok(State::Row) = stmt.next() {}
-        println!("Added entry to history table.");
+        Ok(())
     }
-}
 
-// Implement funtions related to writing to the rank table.
-impl Connection {
-    pub fn new_rank(&mut self, uid: &str, rank: &str) {
-        let query = "INSERT INTO Rank VALUES (:uid, :rank);";
-        let mut stmt = self.conn.prepare(query).unwrap();
-        stmt.bind((":uid", uid)).unwrap();
-        stmt.bind((":rank", rank)).unwrap();
+    fn player_exists(&self, user_id: &str) -> Result<bool, SqliteError> {
+        let query = "SELECT * FROM Players WHERE (UID = ':UID')";
+        let mut stmt = self.conn.prepare(query)?;
+        stmt.bind((":UID", user_id))?;
 
-        while let Ok(State::Row) = stmt.next() {}
-        println!("Added entry to rank table.");
+        let mut found = false;
+
+        println!("Columns: {}", stmt.column_count());
+        while let Ok(State::Row) = stmt.next() {
+            let id: String = stmt.read(0)?;
+            if id == user_id {
+                found = true;
+                break;
+            }
+        }
+
+        Ok(found)
     }
 }

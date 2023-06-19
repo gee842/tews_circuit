@@ -72,7 +72,7 @@ pub async fn challenge(
                     &ctx.author().id.to_string(),
                     &user_challenged.id.to_string(),
                     &answer.content,
-                );
+                )?;
             }
         } else if reject {
             channel.say(&ctx, "The request was rejected.").await?;
@@ -93,8 +93,9 @@ pub async fn challenge(
 pub async fn match_started(ctx: Context<'_>) -> Result<(), Error> {
     // TODO: Create a select menu
     // https://github.com/serenity-rs/serenity/blob/9fc3f1180ddee5526a78c6e72deaaa9dd7be1f03/examples/e17_message_components/src/main.rs
-    
-    ctx.say("Looks like you're ready. Please select the user to challenge.").await?;
+
+    ctx.say("Looks like you're ready. Please select the user to challenge.")
+        .await?;
     todo!("Create a select menu.");
     Ok(())
 }

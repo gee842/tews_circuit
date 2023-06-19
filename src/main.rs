@@ -34,9 +34,9 @@ async fn bot() {
         | GatewayIntents::GUILD_MESSAGE_REACTIONS;
 
     let mut owners = HashSet::new();
-    // Alph's main account
+    // Main account
     owners.insert(UserId(275797064674312193));
-    // Alph's test account
+    // Test account
     owners.insert(UserId(1112188266024812544));
 
     let framework = poise::Framework::builder()
