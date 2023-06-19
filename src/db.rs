@@ -54,23 +54,25 @@ impl Connection {
         date: &str,
     ) -> Result<(), SqliteError> {
         // Checks if both players exist in the db.
+        println!("challenger: {}", challenger);
         if !self.player_exists(challenger)? {
             self.add_player(challenger)?;
         }
 
+        println!("challenged: {}", challenged);
         if !self.player_exists(challenged)? {
             self.add_player(challenged)?;
         }
 
         let query =
-            "INSERT INTO History VALUES (:Challenger, :Challenged, :Date, :Finished, :Winner);";
+            "INSERT INTO History VALUES (:challenger, :challenged, :date, :finished, :winner);";
         let mut stmt = self.conn.prepare(query)?;
 
-        stmt.bind((":Challenger", challenger))?;
-        stmt.bind((":Challenged", challenged))?;
-        stmt.bind((":Date", date))?;
-        stmt.bind((":Finished", 0))?;
-        stmt.bind((":Winner", "N/A"))?;
+        stmt.bind((":challenger", challenger))?;
+        stmt.bind((":challenged", challenged))?;
+        stmt.bind((":date", date))?;
+        stmt.bind((":finished", 0))?;
+        stmt.bind((":winner", "N/A"))?;
 
         while let Ok(State::Row) = stmt.next() {}
         println!("Added entry to challenges table.");
@@ -85,27 +87,30 @@ impl Connection {
 
 impl Connection {
     fn add_player(&mut self, user_id: &str) -> Result<(), SqliteError> {
-        let query = "INSERT INTO Players VALUES (:user_id, :win, :loss, :disqualifications, :rank, :points)";
+        let query =
+            "INSERT INTO Players VALUES (:uid, :win, :loss, :disqualifications, :rank, :points)";
         let mut stmt = self.conn.prepare(query).unwrap();
 
-        stmt.bind((":UID", user_id))?;
-        stmt.bind((":Win", 0))?;
-        stmt.bind((":Loss", 0))?;
-        stmt.bind((":Disqualifications", 0))?;
-        stmt.bind((":Rank", "Unrated"))?;
-        stmt.bind((":Points", 900))?;
+        // Error here too. Might be related to the one in player_exists
+        stmt.bind((":uid", user_id))?;
+        stmt.bind((":win", 0))?;
+        stmt.bind((":loss", 0))?;
+        stmt.bind((":disqualifications", 0))?;
+        stmt.bind((":rank", "Unrated"))?;
+        stmt.bind((":points", 900))?;
+
+        while let Ok(State::Row) = stmt.next() {}
 
         Ok(())
     }
 
     fn player_exists(&self, user_id: &str) -> Result<bool, SqliteError> {
-        let query = "SELECT * FROM Players WHERE (UID = ':UID')";
+        let query = "SELECT * FROM Players WHERE UID = :user_id";
         let mut stmt = self.conn.prepare(query)?;
-        stmt.bind((":UID", user_id))?;
+        stmt.bind((":user_id", user_id))?;
 
         let mut found = false;
 
-        println!("Columns: {}", stmt.column_count());
         while let Ok(State::Row) = stmt.next() {
             let id: String = stmt.read(0)?;
             if id == user_id {
