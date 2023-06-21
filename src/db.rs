@@ -83,6 +83,11 @@ impl Connection {
     pub fn challenge_finished(&mut self, challenger: &str, challenged: &str) {
         todo!();
     }
+
+    pub fn disqualification_countdown() {
+        // TODO: Figure out how to deal with disqualification.
+        todo!();
+    }
 }
 
 impl Connection {
