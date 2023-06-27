@@ -80,23 +80,11 @@ impl Connection {
         Ok(())
     }
 
-    pub fn challenge_finished(&mut self, challenger: &str, challenged: &str) {
-        todo!();
-    }
-
-    pub fn disqualification_countdown() {
-        // TODO: Figure out how to deal with disqualification.
-        todo!();
-    }
-}
-
-impl Connection {
     fn add_player(&mut self, user_id: &str) -> Result<(), SqliteError> {
         let query =
             "INSERT INTO Players VALUES (:uid, :win, :loss, :disqualifications, :rank, :points)";
         let mut stmt = self.conn.prepare(query).unwrap();
 
-        // Error here too. Might be related to the one in player_exists
         stmt.bind((":uid", user_id))?;
         stmt.bind((":win", 0))?;
         stmt.bind((":loss", 0))?;
@@ -107,6 +95,34 @@ impl Connection {
         while let Ok(State::Row) = stmt.next() {}
 
         Ok(())
+    }
+
+    pub fn player_matches(&self, user_id: &str) -> Option<Vec<String>> {
+        match self.player_exists(user_id) {
+            Ok(truth) => truth,
+            Err(e) => panic!("{}", e),
+        };
+
+        let query = "SELECT * FROM History WHERE Challenger = :user_id AND Finished = 0";
+        let mut stmt = match self.conn.prepare(query) {
+            Ok(stmt) => stmt,
+            Err(e) => panic!("{}", e),
+        };
+
+        stmt.bind((":user_id", user_id)).unwrap();
+
+        let mut challengers = vec![];
+        while let Ok(State::Row) = stmt.next() {
+            // The person user is going to challenge.
+            let challenged: String = stmt.read(1).unwrap();
+            challengers.push(challenged);
+        }
+
+        if challengers.len() == 0 {
+            None
+        } else {
+            Some(challengers)
+        }
     }
 
     fn player_exists(&self, user_id: &str) -> Result<bool, SqliteError> {

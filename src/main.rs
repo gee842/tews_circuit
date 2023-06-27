@@ -1,3 +1,5 @@
+#![feature(iter_collect_into)]
+
 mod challenge;
 use challenge::*;
 
@@ -6,13 +8,13 @@ use utils::*;
 
 mod db;
 
-use std::collections::HashSet;
+use std::{collections::HashSet, error::Error as StdError};
 
 use poise::serenity_prelude::{self as serenity, UserId};
 use serenity::GatewayIntents;
 
 pub struct Data {} // User data, which is stored and accessible in all command invocations
-type Error = Box<dyn std::error::Error + Send + Sync>;
+type Error = Box<dyn StdError + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
 fn database_setup() {
@@ -41,7 +43,7 @@ async fn bot() {
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![challenge(), register(), match_started()],
+            commands: vec![challenge(), register(), start_match()],
             skip_checks_for_owners: false,
             prefix_options: poise::PrefixFrameworkOptions {
                 prefix: Some("-".into()),
