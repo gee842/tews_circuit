@@ -74,6 +74,9 @@ pub async fn challenge(
                 .say(&ctx, "The challenged user has 5 minutes to respond.")
                 .await?;
 
+            // TODO: This part should be modified. There should be a button for the user to press
+            // then and only then their next message will be taken as the date and time of the
+            // match.
             let msg = "Challenge accepted! Now, write the date and time of this match.";
             channel.say(&ctx, msg).await?;
 

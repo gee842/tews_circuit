@@ -1,3 +1,4 @@
+use chrono::{format::ParseErrorKind::BadFormat, NaiveDate};
 use sqlite::{self, Connection as DbConn, Error as SqliteError, State};
 
 pub struct Connection {
@@ -10,13 +11,13 @@ impl Connection {
         let query = "
             PRAGMA foreign_keys = ON;
 
-            CREATE TABLE IF NOT EXISTS History (
-                Challenger	TEXT,
-                Challenged	TEXT,
-                Date	TEXT,
-                Finished	INTEGER,
-                Winner	TEXT,
-                FOREIGN KEY(Challenger) REFERENCES Players(UID)
+            CREATE TABLE 'History' (
+            	'Challenger'	TEXT,
+            	'Challenged'	TEXT,
+            	'Date'	DATE,
+            	'Finished'	INTEGER,
+            	'Winner'	TEXT,
+            	FOREIGN KEY('Challenger') REFERENCES 'Players'('UID')
             );
 
             CREATE TABLE IF NOT EXISTS Players (
@@ -70,6 +71,26 @@ impl Connection {
 
         stmt.bind((":challenger", challenger))?;
         stmt.bind((":challenged", challenged))?;
+
+        // Makes sure the date provided is in the expected format.
+        match NaiveDate::parse_from_str(date, "%v %H:%M") {
+            Ok(_) => {}
+            Err(e) => {
+                let error = match e.kind() {
+                    BadFormat => SqliteError {
+                        code: Some(999),
+                        message: Some(String::from("You passed in an invalid format. Please refer to the examples provided.")),
+                    },
+                    _ => SqliteError {
+                        code: Some(998),
+                        message: Some(e.to_string()),
+                    },
+                };
+
+                return Err(error);
+            }
+        };
+
         stmt.bind((":date", date))?;
         stmt.bind((":finished", 0))?;
         stmt.bind((":winner", "N/A"))?;
