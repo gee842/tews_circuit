@@ -87,12 +87,12 @@ pub async fn challenge(
                 let msg = format!("It is done. The challenge is on {}.", answer.content);
                 channel.say(&ctx, msg).await?;
 
-                unimplemented!("");
-                //                 conn.new_challenge(
-                //                     &ctx.author().id.to_string(),
-                //                     &user_challenged.id.to_string(),
-                //                     &answer.content,
-                //                 )?;
+                let mut conn = ctx.data().database.clone();
+                conn.new_challenge(
+                    &ctx.author().id.to_string(),
+                    &user_challenged.id.to_string(),
+                    &answer.content,
+                ).await?;
             }
         } else if reject {
             channel.say(&ctx, "The request was rejected.").await?;

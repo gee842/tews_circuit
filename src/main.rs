@@ -12,7 +12,6 @@ use db::Database;
 use std::{
     collections::HashSet,
     error::Error as StdError,
-    sync::{Arc, Mutex},
 };
 
 use poise::serenity_prelude::{self as serenity, UserId};
@@ -29,8 +28,13 @@ pub struct Data {
 
 #[tokio::main]
 async fn main() {
-    let database = Database::new().unwrap();
-    let database = Arc::new(database);
+    let database = match Database::new().await {
+        Ok(database) => database,
+        Err(e) => {
+            println!("{}", e.to_string());
+            return;
+        }
+    };
 
     let intents = GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::DIRECT_MESSAGES
