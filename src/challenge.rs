@@ -4,7 +4,6 @@ use std::{
 };
 
 use super::*;
-use db::Connection;
 
 use poise::serenity_prelude::{
     self as serenity, CreateActionRow, CreateSelectMenu, CreateSelectMenuOption, MessageBuilder,
@@ -88,12 +87,12 @@ pub async fn challenge(
                 let msg = format!("It is done. The challenge is on {}.", answer.content);
                 channel.say(&ctx, msg).await?;
 
-                let mut conn = Connection::new();
-                conn.new_challenge(
-                    &ctx.author().id.to_string(),
-                    &user_challenged.id.to_string(),
-                    &answer.content,
-                )?;
+                unimplemented!("");
+                //                 conn.new_challenge(
+                //                     &ctx.author().id.to_string(),
+                //                     &user_challenged.id.to_string(),
+                //                     &answer.content,
+                //                 )?;
             }
         } else if reject {
             channel.say(&ctx, "The request was rejected.").await?;
@@ -109,75 +108,75 @@ pub async fn challenge(
 pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
     let caller = ctx.author().id;
 
-    // Retrieves the caller's challenge list.
-    let connection = Connection::new();
-    let players = match connection.player_matches(&caller.to_string()) {
-        Some(players) => players,
-        None => {
-            return Err(Box::new(IoError::new(
-                ErrorKind::NotFound,
-                "This user has challenged no one.",
-            )))
-        }
-    };
+    // // Retrieves the caller's challenge list.
+    // let connection = Connection::new();
+    // let players = match connection.player_matches(&caller.to_string()) {
+    //     Some(players) => players,
+    //     None => {
+    //         return Err(Box::new(IoError::new(
+    //             ErrorKind::NotFound,
+    //             "This user has challenged no one.",
+    //         )))
+    //     }
+    // };
 
-    let mut options = vec![];
-    for player in players {
-        let user_id = player.parse::<u64>()?;
-        let username = UserId(user_id).to_user(&ctx).await?;
-        let option = CreateSelectMenuOption::new(username.name, user_id);
-        options.push(option);
-    }
+    // let mut options = vec![];
+    // for player in players {
+    //     let user_id = player.parse::<u64>()?;
+    //     let username = UserId(user_id).to_user(&ctx).await?;
+    //     let option = CreateSelectMenuOption::new(username.name, user_id);
+    //     options.push(option);
+    // }
 
-    // Create the select menu.
-    let mut select_menu = CreateSelectMenu::default();
-    select_menu.custom_id(ctx.id() + 20);
-    select_menu.placeholder("Select the person you will fight.");
-    select_menu.options(|f| f.set_options(options));
+    // // Create the select menu.
+    // let mut select_menu = CreateSelectMenu::default();
+    // select_menu.custom_id(ctx.id() + 20);
+    // select_menu.placeholder("Select the person you will fight.");
+    // select_menu.options(|f| f.set_options(options));
 
-    let mut action_row = CreateActionRow::default();
-    action_row.add_select_menu(select_menu);
+    // let mut action_row = CreateActionRow::default();
+    // action_row.add_select_menu(select_menu);
 
-    // This sends the select menu
-    let msg = ctx
-        .channel_id()
-        .send_message(&ctx, |m| {
-            m.content("Select the person to be challenged today.")
-                .components(|c| c.add_action_row(action_row.clone()))
-        })
-        .await?;
+    // // This sends the select menu
+    // let msg = ctx
+    //     .channel_id()
+    //     .send_message(&ctx, |m| {
+    //         m.content("Select the person to be challenged today.")
+    //             .components(|c| c.add_action_row(action_row.clone()))
+    //     })
+    //     .await?;
 
-    // This part is responsible for responding to messages.
-    let interaction = match msg
-        .await_component_interaction(&ctx)
-        .timeout(Duration::from_secs(60 * 5))
-        .await
-    {
-        Some(x) => x,
-        None => {
-            msg.reply(&ctx, "Timed out").await?;
-            return Ok(());
-        }
-    };
+    // // This part is responsible for responding to messages.
+    // let interaction = match msg
+    //     .await_component_interaction(&ctx)
+    //     .timeout(Duration::from_secs(60 * 5))
+    //     .await
+    // {
+    //     Some(x) => x,
+    //     None => {
+    //         msg.reply(&ctx, "Timed out").await?;
+    //         return Ok(());
+    //     }
+    // };
 
-    let user_id = &interaction.data.values[0];
-    let user_id = user_id.parse::<u64>()?;
-    let user = UserId(user_id);
+    // let user_id = &interaction.data.values[0];
+    // let user_id = user_id.parse::<u64>()?;
+    // let user = UserId(user_id);
 
-    let announcement_message = MessageBuilder::default()
-        .mention(&user)
-        .push(" it is time for the match. If you do not click the following button within five minutes you will be disqualified.")
-        .build();
+    // let announcement_message = MessageBuilder::default()
+    //     .mention(&user)
+    //     .push(" it is time for the match. If you do not click the following button within five minutes you will be disqualified.")
+    //     .build();
 
-    // This doesn't actually ping the user. Will need to change the IRT
-    // TODO: Update this portion of the code to send a new interaction with a new timeout.
-    interaction
-        .create_interaction_response(&ctx, |r| {
-            r.kind(InteractionResponseType::UpdateMessage)
-                // Will need to attach a button component to it.
-                .interaction_response_data(|d| d.content(announcement_message))
-        })
-        .await?;
+    // // This doesn't actually ping the user. Will need to change the IRT
+    // // TODO: Update this portion of the code to send a new interaction with a new timeout.
+    // interaction
+    //     .create_interaction_response(&ctx, |r| {
+    //         r.kind(InteractionResponseType::UpdateMessage)
+    //             // Will need to attach a button component to it.
+    //             .interaction_response_data(|d| d.content(announcement_message))
+    //     })
+    //     .await?;
 
     Ok(())
 }

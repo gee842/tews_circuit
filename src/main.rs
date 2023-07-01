@@ -7,28 +7,30 @@ mod utils;
 use utils::*;
 
 mod db;
+use db::Database;
 
-use std::{collections::HashSet, error::Error as StdError};
+use std::{
+    collections::HashSet,
+    error::Error as StdError,
+    sync::{Arc, Mutex},
+};
 
 use poise::serenity_prelude::{self as serenity, UserId};
 use serenity::GatewayIntents;
 
-pub struct Data {} // User data, which is stored and accessible in all command invocations
 type Error = Box<dyn StdError + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
-fn database_setup() {
-    db::Connection::new();
+// User data, which is stored and accessible in all command invocations
+// The connection to the database can be placed in here.
+pub struct Data {
+    database: Database,
 }
 
 #[tokio::main]
 async fn main() {
-    database_setup();
-    bot().await;
-}
-
-async fn bot() {
-    database_setup();
+    let database = Database::new().unwrap();
+    let database = Arc::new(database);
 
     let intents = GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::DIRECT_MESSAGES
@@ -59,7 +61,7 @@ async fn bot() {
         .setup(|ctx, _ready, framework| {
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-                Ok(Data {})
+                Ok(Data { database })
             })
         });
 
