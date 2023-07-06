@@ -2,12 +2,21 @@ use std::time::Duration;
 
 use super::*;
 
-use poise::serenity_prelude::{
-    self as serenity, ButtonStyle, CreateActionRow, CreateButton, CreateSelectMenu,
-    CreateSelectMenuOption, MessageBuilder,
+use chrono::DurationRound;
+use tokio::time::error::Error as TokioError;
+
+use poise::{
+    serenity_prelude::{
+        self as serenity, ButtonStyle, CollectComponentInteraction, CreateActionRow, CreateButton,
+        CreateSelectMenu, CreateSelectMenuOption, InteractionResponseType, MessageBuilder,
+    },
+    Modal,
 };
 
-use serenity::CollectComponentInteraction;
+#[derive(Modal)]
+struct MyModal {
+    date: String,
+}
 
 async fn create_challenge_menu(ctx: Context<'_>, user: &serenity::User) -> Result<(), Error> {
     let accept_uuid = ctx.id();
@@ -49,7 +58,7 @@ pub async fn challenge(
 
     create_challenge_menu(ctx, &user_challenged).await?;
 
-    while let Some(mci) = CollectComponentInteraction::new(ctx)
+    while let Some(mci) = CollectComponentInteraction::new(ctx.serenity_context())
         .author_id(user_challenged.id)
         .channel_id(ctx.channel_id())
         .timeout(Duration::from_secs(60 * 5))
@@ -75,25 +84,66 @@ pub async fn challenge(
             // TODO: This part should be modified. There should be a button for the user to press
             // then and only then their next message will be taken as the date and time of the
             // match.
-            let msg = "Challenge accepted! Now, write the date and time of this match.";
-            channel.say(&ctx, msg).await?;
+            let msg = "Challenge accepted! Write the date and time of this match.";
+            let confirmation_msg = channel
+                .send_message(&ctx, |message| {
+                    let mut ar = CreateActionRow::default();
+                    let button = CreateButton::default()
+                        .label("Click to set date & time of match.")
+                        .style(ButtonStyle::Primary)
+                        .custom_id(&ctx.id())
+                        .clone();
 
-            if let Some(answer) = user_challenged
-                .await_reply(ctx)
+                    ar.add_button(button);
+                    message.content(msg).components(|c| c.add_action_row(ar))
+                })
+                .await?;
+
+            let interaction = match confirmation_msg
+                .await_component_interaction(&ctx)
+                .author_id(user_challenged.id)
                 .timeout(Duration::from_secs(60 * 5))
                 .await
             {
-                let msg = format!("It is done. The challenge is on {}.", answer.content);
-                channel.say(&ctx, msg).await?;
+                Some(x) => x,
+                None => {
+                    confirmation_msg
+                        .reply(
+                            &ctx,
+                            "Timed out. Please call the challenge command one more time.",
+                        )
+                        .await?;
+                    return Err(Box::new(TokioError::invalid()));
+                }
+            };
 
-                let mut conn = ctx.data().database.clone();
-                conn.new_challenge(
-                    &ctx.author().id.to_string(),
-                    &user_challenged.id.to_string(),
-                    &answer.content,
-                )
+            interaction
+                .create_interaction_response(&ctx, |response| {
+                    response
+                        .kind(InteractionResponseType::UpdateMessage)
+                        .interaction_response_data(|data| data.content("Match time set."))
+                })
                 .await?;
-            }
+
+            let m = MyModal {
+                date: "asd".to_string(),
+            };
+
+            let date = poise::execute_modal(ctx.serenity_context(), Some(m), Some(Duration::from_secs(60 * 3))).await?;
+
+            // let date = &interaction.message.content;
+
+            // let mut conn = ctx.data().database.clone();
+            // conn.new_challenge(
+            //     &ctx.author().id.to_string(),
+            //     &user_challenged.id.to_string(),
+            //     &date,
+            // )
+            // .await?;
+
+            channel
+                .say(&ctx, format!("It is done. The challenge is on ."))
+                .await?;
         } else if reject {
             channel.say(&ctx, "The request was rejected.").await?;
         }
@@ -104,6 +154,7 @@ pub async fn challenge(
     Ok(())
 }
 
+// TODO: Should probably just DM this list to the caller.
 #[poise::command(slash_command)]
 pub async fn my_pending_matches(ctx: Context<'_>) -> Result<(), Error> {
     let caller = ctx.author().id;
@@ -165,6 +216,16 @@ pub async fn my_pending_matches(ctx: Context<'_>) -> Result<(), Error> {
         .await?;
 
     Ok(())
+}
+
+/// Checks the database every five minutes then alerts users when
+/// time for a match is near.
+pub async fn check_matches() {
+    let mut timer = tokio::time::interval(Duration::from_secs(60 * 5));
+    loop {
+        println!("hi");
+        timer.tick().await;
+    }
 }
 
 #[poise::command(slash_command)]

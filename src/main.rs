@@ -36,6 +36,8 @@ async fn main() {
         }
     };
 
+    tokio::spawn(check_matches());
+
     let intents = GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::DIRECT_MESSAGES
         | GatewayIntents::MESSAGE_CONTENT
