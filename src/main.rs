@@ -9,10 +9,7 @@ use utils::*;
 mod db;
 use db::Database;
 
-use std::{
-    collections::HashSet,
-    error::Error as StdError,
-};
+use std::{collections::HashSet, error::Error as StdError};
 
 use poise::serenity_prelude::{self as serenity, UserId};
 use serenity::GatewayIntents;
@@ -36,8 +33,6 @@ async fn main() {
         }
     };
 
-    tokio::spawn(check_matches());
-
     let intents = GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::DIRECT_MESSAGES
         | GatewayIntents::MESSAGE_CONTENT
@@ -51,7 +46,7 @@ async fn main() {
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![challenge(), register(), start_match(), my_pending_matches()],
+            commands: vec![challenge(), register(), pending_matches()],
             skip_checks_for_owners: false,
             prefix_options: poise::PrefixFrameworkOptions {
                 prefix: Some("-".into()),
@@ -66,6 +61,7 @@ async fn main() {
         .intents(intents)
         .setup(|ctx, _ready, framework| {
             Box::pin(async move {
+                tokio::spawn(check_matches(ctx));
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                 Ok(Data { database })
             })

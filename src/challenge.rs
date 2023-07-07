@@ -1,22 +1,13 @@
-use std::time::Duration;
+use std::{
+    io::{Error as IoError, ErrorKind},
+    time::Duration,
+};
 
 use super::*;
 
-use chrono::DurationRound;
-use tokio::time::error::Error as TokioError;
-
-use poise::{
-    serenity_prelude::{
-        self as serenity, ButtonStyle, CollectComponentInteraction, CreateActionRow, CreateButton,
-        CreateSelectMenu, CreateSelectMenuOption, InteractionResponseType, MessageBuilder,
-    },
-    Modal,
+use poise::serenity_prelude::{
+    self as serenity, CollectComponentInteraction, CreateActionRow, MessageBuilder,
 };
-
-#[derive(Modal)]
-struct MyModal {
-    date: String,
-}
 
 async fn create_challenge_menu(ctx: Context<'_>, user: &serenity::User) -> Result<(), Error> {
     let accept_uuid = ctx.id();
@@ -58,7 +49,7 @@ pub async fn challenge(
 
     create_challenge_menu(ctx, &user_challenged).await?;
 
-    while let Some(mci) = CollectComponentInteraction::new(ctx.serenity_context())
+    while let Some(mci) = CollectComponentInteraction::new(&ctx)
         .author_id(user_challenged.id)
         .channel_id(ctx.channel_id())
         .timeout(Duration::from_secs(60 * 5))
@@ -81,69 +72,27 @@ pub async fn challenge(
                 .say(&ctx, "The challenged user has 5 minutes to respond.")
                 .await?;
 
-            // TODO: This part should be modified. There should be a button for the user to press
-            // then and only then their next message will be taken as the date and time of the
-            // match.
-            let msg = "Challenge accepted! Write the date and time of this match.";
-            let confirmation_msg = channel
-                .send_message(&ctx, |message| {
-                    let mut ar = CreateActionRow::default();
-                    let button = CreateButton::default()
-                        .label("Click to set date & time of match.")
-                        .style(ButtonStyle::Primary)
-                        .custom_id(&ctx.id())
-                        .clone();
+            let msg = "Challenge accepted! The challenged user will need to write the date and time of the match.
+                Accepted date formats are as follows:
+                - 8 Jul 2021 15:00\n- 9 Apr 2023 20:00\n- 1 Jan 2024 18:30";
+            channel.say(&ctx, msg).await?;
 
-                    ar.add_button(button);
-                    message.content(msg).components(|c| c.add_action_row(ar))
-                })
-                .await?;
-
-            let interaction = match confirmation_msg
-                .await_component_interaction(&ctx)
-                .author_id(user_challenged.id)
+            if let Some(answer) = user_challenged
+                .await_reply(ctx)
                 .timeout(Duration::from_secs(60 * 5))
                 .await
             {
-                Some(x) => x,
-                None => {
-                    confirmation_msg
-                        .reply(
-                            &ctx,
-                            "Timed out. Please call the challenge command one more time.",
-                        )
-                        .await?;
-                    return Err(Box::new(TokioError::invalid()));
-                }
-            };
-
-            interaction
-                .create_interaction_response(&ctx, |response| {
-                    response
-                        .kind(InteractionResponseType::UpdateMessage)
-                        .interaction_response_data(|data| data.content("Match time set."))
-                })
+                let mut conn = ctx.data().database.clone();
+                conn.new_challenge(
+                    &ctx.author().id.to_string(),
+                    &user_challenged.id.to_string(),
+                    &answer.content,
+                )
                 .await?;
 
-            let m = MyModal {
-                date: "asd".to_string(),
-            };
-
-            let date = poise::execute_modal(ctx.serenity_context(), Some(m), Some(Duration::from_secs(60 * 3))).await?;
-
-            // let date = &interaction.message.content;
-
-            // let mut conn = ctx.data().database.clone();
-            // conn.new_challenge(
-            //     &ctx.author().id.to_string(),
-            //     &user_challenged.id.to_string(),
-            //     &date,
-            // )
-            // .await?;
-
-            channel
-                .say(&ctx, format!("It is done. The challenge is on ."))
-                .await?;
+                let msg = format!("It is done. The challenge is on {}.", answer.content);
+                channel.say(&ctx, msg).await?;
+            }
         } else if reject {
             channel.say(&ctx, "The request was rejected.").await?;
         }
@@ -154,17 +103,17 @@ pub async fn challenge(
     Ok(())
 }
 
-// TODO: Should probably just DM this list to the caller.
 #[poise::command(slash_command)]
-pub async fn my_pending_matches(ctx: Context<'_>) -> Result<(), Error> {
+pub async fn pending_matches(ctx: Context<'_>) -> Result<(), Error> {
     let caller = ctx.author().id;
 
     // Retrieves the caller's challenge list.
     let connection = ctx.data().database.clone();
     let matches = connection.player_matches(&caller.to_string()).await?;
 
+    let dm = caller.create_dm_channel(&ctx).await?;
     if matches.is_empty() {
-        // Propagate the error
+        dm.say(&ctx, "You have no pending matches.").await?;
         return Ok(());
     }
 
@@ -178,60 +127,35 @@ pub async fn my_pending_matches(ctx: Context<'_>) -> Result<(), Error> {
         let time = info.1;
         let label = format!("Vs. {} on {}", username.name, time);
 
-        let option = CreateSelectMenuOption::new(label.clone(), label);
-        options.push(option);
+        options.push(label);
     }
 
-    let mut select_menu = CreateSelectMenu::default();
-    select_menu.custom_id(ctx.id() + 50); // Will need add an actual custom id.
-    select_menu.options(|f| f.set_options(options));
-
-    let mut action_row = CreateActionRow::default();
-    action_row.add_select_menu(select_menu);
-
-    let main_message = "Click to view a list of people you're set to fight.";
-    // This sends the select menu
-    let msg = ctx
-        .channel_id()
-        .send_message(&ctx, |m| {
-            m.content(main_message)
-                .components(|c| c.add_action_row(action_row.clone()))
-        })
-        .await?;
-
-    let interaction = match msg
-        .await_component_interaction(&ctx)
-        .timeout(Duration::from_secs(60 * 5))
-        .await
-    {
-        Some(interaction) => interaction,
-        None => return Ok(()),
-    };
-
-    interaction
-        .create_interaction_response(&ctx, |r| {
-            r.kind(serenity::InteractionResponseType::UpdateMessage)
-                .interaction_response_data(|d| d.content(main_message))
-        })
-        .await?;
-
+    let dm = caller.create_dm_channel(&ctx).await?;
+    let msg = options.join("\n");
+    dm.say(&ctx, msg).await?;
     Ok(())
 }
 
 /// Checks the database every five minutes then alerts users when
 /// time for a match is near.
-pub async fn check_matches() {
+pub async fn check_matches(ctx: &Context<'_>) -> Result<(), IoError> {
     let mut timer = tokio::time::interval(Duration::from_secs(60 * 5));
+    let connection = match Database::new().await {
+        Ok(connection) => connection,
+        Err(e) => return Err(IoError::new(ErrorKind::NotFound, e.to_string())),
+    };
+
     loop {
-        println!("hi");
+        connection.time_for_match().await;
         timer.tick().await;
     }
 }
 
-#[poise::command(slash_command)]
-pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
-    // https://github.com/serenity-rs/serenity/blob/current/examples/e17_message_components/src/main.rs#L72
-    let caller = ctx.author().id;
+// This will be automatically called when it is time for the match.
+// #[poise::command(slash_command)]
+// pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
+//     // https://github.com/serenity-rs/serenity/blob/current/examples/e17_message_components/src/main.rs#L72
+//     let caller = ctx.author().id;
 
-    Ok(())
-}
+//     Ok(())
+// }
