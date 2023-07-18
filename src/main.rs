@@ -1,5 +1,3 @@
-#![feature(iter_collect_into)]
-
 mod challenge;
 use challenge::*;
 
@@ -11,7 +9,7 @@ use db::Database;
 
 use std::{collections::HashSet, error::Error as StdError};
 
-use poise::serenity_prelude::{self as serenity, UserId};
+use poise::serenity_prelude::{self as serenity, CreateThread, UserId};
 use serenity::GatewayIntents;
 
 type Error = Box<dyn StdError + Send + Sync>;
@@ -61,7 +59,7 @@ async fn main() {
         .intents(intents)
         .setup(|ctx, _ready, framework| {
             Box::pin(async move {
-                tokio::spawn(check_matches(ctx));
+                tokio::spawn(check_matches(ctx.clone()));
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                 Ok(Data { database })
             })

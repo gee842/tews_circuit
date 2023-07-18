@@ -13,14 +13,25 @@ pub struct Database {
 
 impl Database {
     pub async fn new() -> Result<Self, SqlxError> {
-        let conn = SqlitePoolOptions::new()
-            .connect("sqlite://database.db")
-            .await?;
-
         // Path taken from https://docs.rs/sqlx/0.6.3/sqlx/sqlite/struct.SqliteConnectOptions.html
-        let sql = fs::read_to_string("db.sql")?;
-        query(sql.as_str()).execute(&conn).await?;
-        Ok(Self { conn })
+        let conn_str = "sqlite://database.db";
+        loop {
+            let conn = SqlitePoolOptions::new().connect(conn_str).await;
+
+            if let Err(e) = &conn {
+                println!("Code: {}\nDatabase not found. Creating.", e);
+                fs::write("database.db", "")?;
+
+                let inner_conn = SqlitePoolOptions::new().connect(conn_str).await?;
+                let db_creation_query = fs::read_to_string("./db.sql")?;
+                query(db_creation_query.as_str()).execute(&inner_conn).await?;
+
+                continue;
+            }
+
+            let conn = conn.unwrap();
+            return Ok(Self { conn });
+        }
     }
 
     pub async fn new_challenge(

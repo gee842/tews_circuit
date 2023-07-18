@@ -7,6 +7,7 @@ use super::*;
 
 use poise::serenity_prelude::{
     self as serenity, CollectComponentInteraction, CreateActionRow, MessageBuilder,
+    Context as SContext
 };
 
 async fn create_challenge_menu(ctx: Context<'_>, user: &serenity::User) -> Result<(), Error> {
@@ -138,7 +139,7 @@ pub async fn pending_matches(ctx: Context<'_>) -> Result<(), Error> {
 
 /// Checks the database every five minutes then alerts users when
 /// time for a match is near.
-pub async fn check_matches(ctx: &Context<'_>) -> Result<(), IoError> {
+pub async fn check_matches(ctx: SContext) -> Result<(), IoError> {
     let mut timer = tokio::time::interval(Duration::from_secs(60 * 5));
     let connection = match Database::new().await {
         Ok(connection) => connection,
