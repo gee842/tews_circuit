@@ -32,6 +32,17 @@ impl Database {
             let conn = conn.unwrap();
             return Ok(Self { conn });
         }
+        // Creates the database file if it doesn't already exist.
+        OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open("database.db")?;
+
+        let db_path = "sqlite://database.db";
+        let conn = SqlitePoolOptions::new().connect(db_path).await?;
+        let db_creation_query = fs::read_to_string("./db.sql")?;
+        query(db_creation_query.as_str()).execute(&conn).await?;
+
     }
 
     pub async fn new_challenge(
