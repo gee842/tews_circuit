@@ -6,8 +6,8 @@ use std::{
 use super::*;
 
 use poise::serenity_prelude::{
-    self as serenity, CollectComponentInteraction, CreateActionRow, MessageBuilder,
-    Context as SContext
+    self as serenity, CollectComponentInteraction, Context as SContext, CreateActionRow,
+    MessageBuilder,
 };
 
 async fn create_challenge_menu(ctx: Context<'_>, user: &serenity::User) -> Result<(), Error> {
@@ -73,9 +73,10 @@ pub async fn challenge(
                 .say(&ctx, "The challenged user has 5 minutes to respond.")
                 .await?;
 
-            let msg = "Challenge accepted! The challenged user will need to write the date and time of the match.
-                Accepted date formats are as follows:
+            let msg = "
+            Challenge accepted! The challenged user will need to write the date and time of the match. Accepted date formats are as follows:
                 - 8 Jul 2021 15:00\n- 9 Apr 2023 20:00\n- 1 Jan 2024 18:30";
+
             channel.say(&ctx, msg).await?;
 
             if let Some(answer) = user_challenged

@@ -9,7 +9,7 @@ use db::Database;
 
 use std::{collections::HashSet, error::Error as StdError};
 
-use poise::serenity_prelude::{self as serenity, CreateThread, UserId};
+use poise::serenity_prelude::{self as serenity, UserId};
 use serenity::GatewayIntents;
 
 type Error = Box<dyn StdError + Send + Sync>;

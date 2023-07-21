@@ -4,7 +4,7 @@ use sqlx::{
     sqlite::{SqlitePool, SqlitePoolOptions},
     Error as SqlxError, Row,
 };
-use std::fs;
+use std::fs::{self, OpenOptions};
 
 #[derive(Clone)]
 pub struct Database {
@@ -14,24 +14,6 @@ pub struct Database {
 impl Database {
     pub async fn new() -> Result<Self, SqlxError> {
         // Path taken from https://docs.rs/sqlx/0.6.3/sqlx/sqlite/struct.SqliteConnectOptions.html
-        let conn_str = "sqlite://database.db";
-        loop {
-            let conn = SqlitePoolOptions::new().connect(conn_str).await;
-
-            if let Err(e) = &conn {
-                println!("Code: {}\nDatabase not found. Creating.", e);
-                fs::write("database.db", "")?;
-
-                let inner_conn = SqlitePoolOptions::new().connect(conn_str).await?;
-                let db_creation_query = fs::read_to_string("./db.sql")?;
-                query(db_creation_query.as_str()).execute(&inner_conn).await?;
-
-                continue;
-            }
-
-            let conn = conn.unwrap();
-            return Ok(Self { conn });
-        }
         // Creates the database file if it doesn't already exist.
         OpenOptions::new()
             .write(true)
@@ -43,8 +25,12 @@ impl Database {
         let db_creation_query = fs::read_to_string("./db.sql")?;
         query(db_creation_query.as_str()).execute(&conn).await?;
 
+        return Ok(Self { conn });
     }
+}
 
+// Implementations of challenge functions
+impl Database {
     pub async fn new_challenge(
         &mut self,
         challenger: &str,
@@ -60,18 +46,41 @@ impl Database {
             }
         };
 
-        query("INSERT INTO History VALUES (?, ?, ?, ?, ?);")
+        let result = query("INSERT INTO History VALUES (?, ?, ?, ?, ?);")
             .bind(challenger)
             .bind(challenged)
             .bind(date)
             .bind(0)
             .bind("N/A")
             .execute(&self.conn)
-            .await?;
+            .await;
+
+        if let Err(e) = result {
+            let error = e.as_database_error();
+            if let None = error {
+                return Ok(());
+            }
+
+            let error = error.unwrap();
+            let code = error.code().unwrap();
+
+            // 787 is the error code for foreign key constraint not met. 
+            // Meaning either the challenger orthe challenged has not
+            // been added to the Players table.
+            if code != "787" {
+                let msg = format!("Error code: {}\nMessage: {}", code, error.message());
+                return Err(SqlxError::Protocol(msg));
+            }
+
+            self.add_player(challenger, challenged).await?;
+        }
 
         Ok(())
     }
+}
 
+// Data functions
+impl Database {
     /// `user` - The specified user's pending matches
     pub async fn player_matches(&self, user: &str) -> Result<Vec<(String, String)>, SqlxError> {
         let rows =
@@ -134,5 +143,35 @@ impl Database {
         }
 
         matches
+    }
+
+    async fn add_player(&mut self, challenger: &str, challenged: &str) -> Result<(), SqlxError> {
+        let rows = query("SELECT * FROM Players WHERE UID = ? OR ?")
+            .bind(challenger)
+            .bind(challenged)
+            .fetch_all(&self.conn)
+            .await?;
+
+        let uids: Vec<&str> = rows.iter().map(|row| row.get(1)).collect();
+        let sql = query("INSERT INTO Players VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
+
+        let missing_uid = if !uids.contains(&challenged) {
+            challenged
+        } else {
+            challenger
+        };
+
+        sql.bind(missing_uid)
+            .bind(0)
+            .bind(0)
+            .bind(0)
+            .bind("Unrated")
+            .bind(900)
+            .bind(0)
+            .bind(0)
+            .execute(&self.conn)
+            .await?;
+
+        Ok(())
     }
 }
