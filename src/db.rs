@@ -15,10 +15,16 @@ impl Database {
     pub async fn new() -> Result<Self, SqlxError> {
         // Path taken from https://docs.rs/sqlx/0.6.3/sqlx/sqlite/struct.SqliteConnectOptions.html
         // Creates the database file if it doesn't already exist.
-        OpenOptions::new()
+        match OpenOptions::new()
             .write(true)
             .create_new(true)
-            .open("database.db")?;
+            .open("database.db")
+        {
+            Err(e) if e.kind() != ErrorKind::AlreadyExists => {
+                return Err(SqlxError::Io(e));
+            }
+            _ => {}
+        }
 
         let db_path = "sqlite://database.db";
         let conn = SqlitePoolOptions::new().connect(db_path).await?;
