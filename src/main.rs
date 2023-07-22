@@ -58,6 +58,7 @@ async fn main() {
         .token(std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN"))
         .intents(intents)
         .setup(|ctx, _ready, framework| {
+            println!("Tews is online.");
             Box::pin(async move {
                 tokio::spawn(check_matches(ctx.clone()));
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;

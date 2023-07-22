@@ -4,7 +4,10 @@ use sqlx::{
     sqlite::{SqlitePool, SqlitePoolOptions},
     Error as SqlxError, Row,
 };
-use std::fs::{self, OpenOptions};
+use std::{
+    fs::{self, OpenOptions},
+    io::ErrorKind,
+};
 
 #[derive(Clone)]
 pub struct Database {
@@ -52,6 +55,7 @@ impl Database {
             }
         };
 
+        // TODO: This query does *not* get executed will need to fix that.
         let result = query("INSERT INTO History VALUES (?, ?, ?, ?, ?);")
             .bind(challenger)
             .bind(challenged)
@@ -61,6 +65,7 @@ impl Database {
             .execute(&self.conn)
             .await;
 
+        // Checks for an error related to the insert query
         if let Err(e) = result {
             let error = e.as_database_error();
             if let None = error {
@@ -70,47 +75,88 @@ impl Database {
             let error = error.unwrap();
             let code = error.code().unwrap();
 
-            // 787 is the error code for foreign key constraint not met. 
+            // 787 is the error code for foreign key constraint not met.
             // Meaning either the challenger orthe challenged has not
             // been added to the Players table.
             if code != "787" {
                 let msg = format!("Error code: {}\nMessage: {}", code, error.message());
                 return Err(SqlxError::Protocol(msg));
-            }
+            } else {
+                let msg = format!(
+                    "Error code: {}\nMessage: {}\n- Tews: Adding unregistered players.",
+                    code,
+                    error.message()
+                );
 
-            self.add_player(challenger, challenged).await?;
+                println!("{}", msg);
+            }
         }
 
+        self.add_player(challenger, challenged).await?;
+
+        Ok(())
+    }
+
+    /// Checks the `Players` table to see if the `challenged` or the `challenger`
+    /// already exists in the database. If either one or both do not exist
+    /// they will be added to the database.
+    async fn find_missing_player(
+        &mut self,
+        challenger: &str,
+        challenged: &str,
+    ) -> Result<(), SqlxError> {
+        let rows = query("SELECT * FROM Players WHERE UID = ? OR ?")
+            .bind(challenger)
+            .bind(challenged)
+            .fetch_all(&self.conn)
+            .await?;
+
+        let uids: Vec<&str> = rows.iter().map(|row| row.get(1)).collect();
+        let challenged_missing = !uids.contains(&challenged);
+        let challenger_missing = !uids.contains(&challenger);
+
+        if challenger_missing {
+            self.add_new_player(challenger).await?;
+            println!("- Tews: Challenger missing. Added successfully.");
+        }
+
+        if challenged_missing {
+            self.add_new_player(challenged).await?;
+            println!("- Tews: Challenged missing. Added successfully.");
+        }
+
+        Ok(())
+    }
+
+    /// When a new player is found meaning they are not registered in the database
+    /// this function will be called in order to add them.
+    ///
+    /// # Parameters
+    /// - `user_id`: The user_id of the unregistered user.
+    async fn add_new_player(&mut self, user_id: &str) -> Result<(), SqlxError> {
+        let sql = query("INSERT INTO Players VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
+        sql.bind(user_id)
+            .bind(0)
+            .bind(0)
+            .bind(0)
+            .bind("Unrated")
+            .bind(900)
+            .bind(0)
+            .bind(0)
+            .execute(&self.conn)
+            .await?;
+
+        Ok(())
+    }
+
+    async fn add_player(&mut self, challenger: &str, challenged: &str) -> Result<(), SqlxError> {
+        self.find_missing_player(challenger, challenged).await?;
         Ok(())
     }
 }
 
 // Data functions
 impl Database {
-    /// `user` - The specified user's pending matches
-    pub async fn player_matches(&self, user: &str) -> Result<Vec<(String, String)>, SqlxError> {
-        let rows =
-            query("SELECT * FROM History WHERE Challenger = ? OR Challenged = ? AND Finished = 0")
-                .bind(user)
-                .bind(user)
-                .fetch_all(&self.conn)
-                .await?;
-
-        let mut challenges = vec![];
-        println!("=========== {} ===========", user);
-        for row in rows {
-            let challenged: String = row.get(1);
-            let time: String = row.get(2);
-
-            println!("- vs {} on {}", &challenged, &time);
-
-            challenges.push((challenged, time));
-        }
-
-        println!("\n");
-        Ok(challenges)
-    }
-
     pub async fn time_for_match(&self) -> Vec<(f64, f64, String)> {
         let mut matches = vec![];
         // TODO: Identify what you should actually return when it is the Err match arm.
@@ -150,34 +196,31 @@ impl Database {
 
         matches
     }
+}
 
-    async fn add_player(&mut self, challenger: &str, challenged: &str) -> Result<(), SqlxError> {
-        let rows = query("SELECT * FROM Players WHERE UID = ? OR ?")
-            .bind(challenger)
-            .bind(challenged)
-            .fetch_all(&self.conn)
-            .await?;
+// Player history
+impl Database {
+    /// `user` - The specified user's pending matches
+    pub async fn player_matches(&self, user: &str) -> Result<Vec<(String, String)>, SqlxError> {
+        let rows =
+            query("SELECT * FROM History WHERE Challenger = ? OR Challenged = ? AND Finished = 0")
+                .bind(user)
+                .bind(user)
+                .fetch_all(&self.conn)
+                .await?;
 
-        let uids: Vec<&str> = rows.iter().map(|row| row.get(1)).collect();
-        let sql = query("INSERT INTO Players VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
+        let mut challenges = vec![];
+        println!("=========== {} ===========", user);
+        for row in rows {
+            let challenged: String = row.get(1);
+            let time: String = row.get(2);
 
-        let missing_uid = if !uids.contains(&challenged) {
-            challenged
-        } else {
-            challenger
-        };
+            println!("- vs {} on {}", &challenged, &time);
 
-        sql.bind(missing_uid)
-            .bind(0)
-            .bind(0)
-            .bind(0)
-            .bind("Unrated")
-            .bind(900)
-            .bind(0)
-            .bind(0)
-            .execute(&self.conn)
-            .await?;
+            challenges.push((challenged, time));
+        }
 
-        Ok(())
+        println!("\n");
+        Ok(challenges)
     }
 }
