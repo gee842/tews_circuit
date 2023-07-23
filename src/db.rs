@@ -4,6 +4,8 @@ use sqlx::{
     sqlite::{SqlitePool, SqlitePoolOptions},
     Error as SqlxError, Row,
 };
+use tracing::info;
+
 use std::{
     fs::{self, OpenOptions},
     io::ErrorKind,
@@ -47,7 +49,7 @@ impl Database {
         date: &str,
     ) -> Result<(), SqlxError> {
         match NaiveDate::parse_from_str(date, "%e %b %Y %H:%M") {
-            Ok(_) => println!("Date format accepted. Added challenges to table."),
+            Ok(_) => info!("Date format accepted."),
             Err(_) => {
                 return Err(SqlxError::Protocol(
                     "Invalid date format. Please run the command again.".to_string(),
@@ -55,45 +57,41 @@ impl Database {
             }
         };
 
-        // TODO: This query does *not* get executed will need to fix that.
-        let result = query("INSERT INTO History VALUES (?, ?, ?, ?, ?);")
+        match query("INSERT INTO History VALUES (?, ?, ?, ?, ?);")
             .bind(challenger)
             .bind(challenged)
             .bind(date)
             .bind(0)
             .bind("N/A")
             .execute(&self.conn)
-            .await;
+            .await
+        {
+            Err(e) => {
+                // Checks for an error related to the insert query
+                let error = e.as_database_error();
+                if let None = error {
+                    return Ok(());
+                }
 
-        // Checks for an error related to the insert query
-        if let Err(e) = result {
-            let error = e.as_database_error();
-            if let None = error {
-                return Ok(());
+                let error = error.unwrap();
+                let code = error.code().unwrap();
+
+                // 787 is the error code for foreign key constraint not met.
+                // Meaning either the challenger or the challenged has not
+                // been added to the Players table.
+                if code != "787" {
+                    let msg = format!("Error code: {}\nMessage: {}", code, error.message());
+                    return Err(SqlxError::Protocol(msg));
+                } else {
+                    info!("Unregistered player(s) detected, adding them to the database.");
+                    self.add_player(challenger, challenged).await?;
+                    info!("New player(s) added.");
+                }
             }
+            _ => {}
+        };
 
-            let error = error.unwrap();
-            let code = error.code().unwrap();
-
-            // 787 is the error code for foreign key constraint not met.
-            // Meaning either the challenger orthe challenged has not
-            // been added to the Players table.
-            if code != "787" {
-                let msg = format!("Error code: {}\nMessage: {}", code, error.message());
-                return Err(SqlxError::Protocol(msg));
-            } else {
-                let msg = format!(
-                    "Error code: {}\nMessage: {}\n- Tews: Adding unregistered players.",
-                    code,
-                    error.message()
-                );
-
-                println!("{}", msg);
-            }
-        }
-
-        self.add_player(challenger, challenged).await?;
-
+        info!("New challenge added to the challenges table.");
         Ok(())
     }
 
@@ -117,12 +115,12 @@ impl Database {
 
         if challenger_missing {
             self.add_new_player(challenger).await?;
-            println!("- Tews: Challenger missing. Added successfully.");
+            info!("The challenger is missing. Added successfully.");
         }
 
         if challenged_missing {
             self.add_new_player(challenged).await?;
-            println!("- Tews: Challenged missing. Added successfully.");
+            info!("The challenged user missing. Added successfully.");
         }
 
         Ok(())
@@ -210,17 +208,17 @@ impl Database {
                 .await?;
 
         let mut challenges = vec![];
-        println!("=========== {} ===========", user);
+        info!("=========== {} ===========", user);
         for row in rows {
             let challenged: String = row.get(1);
             let time: String = row.get(2);
 
-            println!("- vs {} on {}", &challenged, &time);
+            info!("- vs {} on {}", &challenged, &time);
 
             challenges.push((challenged, time));
         }
 
-        println!("\n");
+        info!("\n");
         Ok(challenges)
     }
 }

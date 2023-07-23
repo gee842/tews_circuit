@@ -12,6 +12,8 @@ use std::{collections::HashSet, error::Error as StdError};
 use poise::serenity_prelude::{self as serenity, UserId};
 use serenity::GatewayIntents;
 
+use tracing::{info, warn};
+
 type Error = Box<dyn StdError + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
@@ -22,11 +24,17 @@ pub struct Data {
 }
 
 #[tokio::main]
+#[tracing::instrument]
 async fn main() {
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .init();
+
     let database = match Database::new().await {
         Ok(database) => database,
         Err(e) => {
-            println!("{}", e.to_string());
+            info!("{}", e.to_string());
+            info!("{}", e.to_string());
             return;
         }
     };
@@ -58,9 +66,10 @@ async fn main() {
         .token(std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN"))
         .intents(intents)
         .setup(|ctx, _ready, framework| {
-            println!("Tews is online.");
+            // info!("Tews is online.");
+            info!("Tews is online.");
             Box::pin(async move {
-                tokio::spawn(check_matches(ctx.clone()));
+                // tokio::spawn(check_matches(ctx.clone()));
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                 Ok(Data { database })
             })

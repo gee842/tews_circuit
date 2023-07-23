@@ -35,6 +35,7 @@ async fn create_challenge_menu(ctx: Context<'_>, user: &serenity::User) -> Resul
     Ok(())
 }
 
+/// A slash command to challenger another user.
 /// - `user`: User to challenge.
 #[poise::command(slash_command)]
 pub async fn challenge(
