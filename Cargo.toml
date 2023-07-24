@@ -7,9 +7,12 @@ edition = "2021"
 
 [dependencies]
 chrono = "0.4.26"
+poise = { version = "0.5.5" }
+sqlx = { version = "0.6", features = [ "runtime-tokio-rustls", "sqlite", "chrono" ] }
+
+# Async stuff
+tokio = { version = "1.21.2", features = ["macros", "rt-multi-thread", "time"] }
 futures = "0.3.28"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-poise = { version = "0.5.5" }
-tokio = { version = "1.21.2", features = ["macros", "rt-multi-thread", "time"] }
-sqlx = { version = "0.6", features = [ "runtime-tokio-rustls", "sqlite", "chrono" ] }
+async-recursion = "1.0.4"

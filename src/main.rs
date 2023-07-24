@@ -66,7 +66,6 @@ async fn main() {
         .token(std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN"))
         .intents(intents)
         .setup(|ctx, _ready, framework| {
-            // info!("Tews is online.");
             info!("Tews is online.");
             Box::pin(async move {
                 // tokio::spawn(check_matches(ctx.clone()));

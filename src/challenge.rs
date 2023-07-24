@@ -90,6 +90,7 @@ pub async fn challenge(
                     &ctx.author().id.to_string(),
                     &user_challenged.id.to_string(),
                     &answer.content,
+                    None,
                 )
                 .await?;
 

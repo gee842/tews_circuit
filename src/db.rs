@@ -1,14 +1,16 @@
+use std::{
+    fs::{self, OpenOptions},
+    io::ErrorKind,
+};
+
+use async_recursion::async_recursion;
+use tracing::info;
+
 use chrono::{NaiveDate, NaiveDateTime, Utc};
 use sqlx::{
     query,
     sqlite::{SqlitePool, SqlitePoolOptions},
     Error as SqlxError, Row,
-};
-use tracing::info;
-
-use std::{
-    fs::{self, OpenOptions},
-    io::ErrorKind,
 };
 
 #[derive(Clone)]
@@ -17,6 +19,8 @@ pub struct Database {
 }
 
 impl Database {
+    /// Attempts to connect to the database. If databse doesn't exist then it'll be
+    /// created. Otherwise, connects with no issues.
     pub async fn new() -> Result<Self, SqlxError> {
         // Path taken from https://docs.rs/sqlx/0.6.3/sqlx/sqlite/struct.SqliteConnectOptions.html
         // Creates the database file if it doesn't already exist.
@@ -42,12 +46,20 @@ impl Database {
 
 // Implementations of challenge functions
 impl Database {
+    /// Adds a new entry to the History table.
+    /// # Parameters
+    /// - challenger: The UID of the challenger.
+    /// - challenged: The UID of the challenged.
+    /// - date: The date and time of the challenge.
+    /// - success: A guard to prevent the function from recusing infinitely.
+    #[async_recursion]
     pub async fn new_challenge(
         &mut self,
         challenger: &str,
         challenged: &str,
         date: &str,
-    ) -> Result<(), SqlxError> {
+        success: Option<bool>,
+    ) -> Result<bool, SqlxError> {
         match NaiveDate::parse_from_str(date, "%e %b %Y %H:%M") {
             Ok(_) => info!("Date format accepted."),
             Err(_) => {
@@ -56,6 +68,10 @@ impl Database {
                 ))
             }
         };
+
+        if let Some(succeeded) = success {
+            return Ok(succeeded);
+        }
 
         match query("INSERT INTO History VALUES (?, ?, ?, ?, ?);")
             .bind(challenger)
@@ -70,7 +86,7 @@ impl Database {
                 // Checks for an error related to the insert query
                 let error = e.as_database_error();
                 if let None = error {
-                    return Ok(());
+                    return Ok(false);
                 }
 
                 let error = error.unwrap();
@@ -84,15 +100,18 @@ impl Database {
                     return Err(SqlxError::Protocol(msg));
                 } else {
                     info!("Unregistered player(s) detected, adding them to the database.");
-                    self.add_player(challenger, challenged).await?;
-                    info!("New player(s) added.");
+                    self.find_missing_player(challenger, challenged).await?;
+                    // match is not added to the challenges table.
+                    info!("New player(s) registered. Re-running function.");
+                    self.new_challenge(challenger, challenged, date, None)
+                        .await?;
                 }
             }
             _ => {}
         };
 
         info!("New challenge added to the challenges table.");
-        Ok(())
+        Ok(true)
     }
 
     /// Checks the `Players` table to see if the `challenged` or the `challenger`
@@ -147,10 +166,6 @@ impl Database {
         Ok(())
     }
 
-    async fn add_player(&mut self, challenger: &str, challenged: &str) -> Result<(), SqlxError> {
-        self.find_missing_player(challenger, challenged).await?;
-        Ok(())
-    }
 }
 
 // Data functions
