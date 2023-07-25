@@ -1,14 +1,13 @@
-use std::{
-    io::{Error as IoError, ErrorKind},
-    time::Duration,
-};
-
 use super::*;
+
+use std::time::Duration;
 
 use poise::serenity_prelude::{
     self as serenity, CollectComponentInteraction, Context as SContext, CreateActionRow,
     MessageBuilder,
 };
+
+use sqlx::Error as SqlxError;
 
 async fn create_challenge_menu(ctx: Context<'_>, user: &serenity::User) -> Result<(), Error> {
     let accept_uuid = ctx.id();
@@ -140,26 +139,19 @@ pub async fn pending_matches(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
-/// Checks the database every five minutes then alerts users when
-/// time for a match is near.
-pub async fn check_matches(ctx: SContext) -> Result<(), IoError> {
-    let mut timer = tokio::time::interval(Duration::from_secs(60 * 5));
-    let connection = match Database::new().await {
-        Ok(connection) => connection,
-        Err(e) => return Err(IoError::new(ErrorKind::NotFound, e.to_string())),
-    };
-
-    loop {
-        connection.time_for_match().await;
-        timer.tick().await;
+/// Goes through the database and adds pending events to a delay queue.
+/// https://docs.rs/tokio-util/latest/tokio_util/time/struct.DelayQueue.html
+pub async fn check_matches(ctx: SContext) -> Result<(), SqlxError> {
+    let connection = Database::new().await?;
+    // TODO: Use this queue for something. The function will queue up
+    // the incoming matches but nothing is done with that information.
+    // Take a look at poll_expired:
+    // https://docs.rs/tokio-util/latest/tokio_util/time/struct.DelayQueue.html#method.poll_expired
+    let queue = connection.queue_all_pending_matches().await?;
+    if queue.is_empty() {
+        info!("There are no pending matches.");
+        return Ok(());
     }
+
+    Ok(())
 }
-
-// This will be automatically called when it is time for the match.
-// #[poise::command(slash_command)]
-// pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
-//     // https://github.com/serenity-rs/serenity/blob/current/examples/e17_message_components/src/main.rs#L72
-//     let caller = ctx.author().id;
-
-//     Ok(())
-// }

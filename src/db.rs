@@ -4,6 +4,7 @@ use std::{
 };
 
 use async_recursion::async_recursion;
+use tokio_util::time::DelayQueue;
 use tracing::info;
 
 use chrono::{NaiveDate, NaiveDateTime, Utc};
@@ -101,7 +102,6 @@ impl Database {
                 } else {
                     info!("Unregistered player(s) detected, adding them to the database.");
                     self.find_missing_player(challenger, challenged).await?;
-                    // match is not added to the challenges table.
                     info!("New player(s) registered. Re-running function.");
                     self.new_challenge(challenger, challenged, date, None)
                         .await?;
@@ -165,11 +165,40 @@ impl Database {
 
         Ok(())
     }
-
 }
 
 // Data functions
 impl Database {
+    /// Goes into the database and places all pending matches in a DelayQueue.
+    pub async fn queue_all_pending_matches(&self) -> Result<DelayQueue<String>, SqlxError> {
+        let rows = query("SELECT * FROM History WHERE Finished = 0")
+            .fetch_all(&self.conn)
+            .await?;
+
+        let mut queue = DelayQueue::new();
+        if rows.is_empty() {
+            return Ok(queue)
+        }
+
+        for row in rows {
+            let challenger: String = row.get(0);
+            let challenged: String = row.get(1);
+
+            let date_of_match: &str = row.get(2);
+            let current_datetime = Utc::now().naive_utc();
+            let match_datetime =
+                NaiveDateTime::parse_from_str(date_of_match, "%e %b %Y %H:%M").unwrap();
+
+            let match_datetime =
+                chrono::Duration::to_std(&(current_datetime - match_datetime)).unwrap();
+
+            queue.insert(challenger, match_datetime);
+            queue.insert(challenged, match_datetime);
+        }
+
+        Ok(queue)
+    }
+
     pub async fn time_for_match(&self) -> Vec<(f64, f64, String)> {
         let mut matches = vec![];
         // TODO: Identify what you should actually return when it is the Err match arm.
