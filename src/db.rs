@@ -1,9 +1,11 @@
 use std::{
     fs::{self, OpenOptions},
     io::ErrorKind,
+    pin::Pin,
 };
 
 use async_recursion::async_recursion;
+use futures::Future;
 use tokio_util::time::DelayQueue;
 use tracing::info;
 
@@ -11,7 +13,7 @@ use chrono::{NaiveDate, NaiveDateTime, Utc};
 use sqlx::{
     query,
     sqlite::{SqlitePool, SqlitePoolOptions},
-    Error as SqlxError, Row,
+    Connection, Error as SqlxError, Row,
 };
 
 #[derive(Clone)]
@@ -177,7 +179,7 @@ impl Database {
 
         let mut queue = DelayQueue::new();
         if rows.is_empty() {
-            return Ok(queue)
+            return Ok(queue);
         }
 
         for row in rows {
@@ -237,6 +239,20 @@ impl Database {
         }
 
         matches
+    }
+
+    pub fn get_player_uids<'a>(
+        &'a self,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<String>, SqlxError>> + 'a>> {
+        Box::pin(async move {
+            let rows = query("SELECT UID FROM Players")
+                .fetch_all(&self.conn)
+                .await?;
+
+            let uid: Vec<String> = rows.iter().map(|row| row.get(0)).collect();
+
+            Ok(uid)
+        })
     }
 }
 

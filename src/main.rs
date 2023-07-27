@@ -14,6 +14,9 @@ use serenity::GatewayIntents;
 
 use tracing::{info, warn};
 
+use core::task::Context as TContext;
+use futures::task::noop_waker_ref;
+
 type Error = Box<dyn StdError + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
@@ -68,7 +71,7 @@ async fn main() {
         .setup(|ctx, _ready, framework| {
             info!("Tews is online.");
             Box::pin(async move {
-                tokio::spawn(check_matches(ctx.clone()));
+                let _ = tokio::spawn(check_matches()).await?;
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                 Ok(Data { database })
             })

@@ -1,6 +1,6 @@
 use super::*;
 
-use std::time::Duration;
+use std::{task::Context as TContext, time::Duration};
 
 use poise::serenity_prelude::{
     self as serenity, CollectComponentInteraction, Context as SContext, CreateActionRow,
@@ -141,17 +141,24 @@ pub async fn pending_matches(ctx: Context<'_>) -> Result<(), Error> {
 
 /// Goes through the database and adds pending events to a delay queue.
 /// https://docs.rs/tokio-util/latest/tokio_util/time/struct.DelayQueue.html
-pub async fn check_matches(ctx: SContext) -> Result<(), SqlxError> {
+pub async fn check_matches() -> Result<bool, SqlxError> {
     let connection = Database::new().await?;
     // TODO: Use this queue for something. The function will queue up
     // the incoming matches but nothing is done with that information.
     // Take a look at poll_expired:
     // https://docs.rs/tokio-util/latest/tokio_util/time/struct.DelayQueue.html#method.poll_expired
-    let queue = connection.queue_all_pending_matches().await?;
+    let mut queue = connection.queue_all_pending_matches().await?;
     if queue.is_empty() {
         info!("There are no pending matches.");
-        return Ok(());
+        return Ok(true);
     }
 
-    Ok(())
+    let mut cx = TContext::from_waker(noop_waker_ref());
+    loop {
+        let uids = connection.get_player_uids().await?;
+        queue.poll_expired(&mut cx);
+        break;
+    }
+
+    Ok(true)
 }
