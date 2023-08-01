@@ -1,13 +1,10 @@
 use super::*;
 
-use std::{task::Context as TContext, time::Duration};
+use std::time::Duration;
 
 use poise::serenity_prelude::{
-    self as serenity, CollectComponentInteraction, Context as SContext, CreateActionRow,
-    MessageBuilder,
+    self as serenity, CollectComponentInteraction, CreateActionRow, MessageBuilder,
 };
-
-use sqlx::Error as SqlxError;
 
 async fn create_challenge_menu(ctx: Context<'_>, user: &serenity::User) -> Result<(), Error> {
     let accept_uuid = ctx.id();
@@ -84,6 +81,7 @@ pub async fn challenge(
                 .timeout(Duration::from_secs(60 * 5))
                 .await
             {
+                // Adds new challenges to database.
                 let mut conn = ctx.data().database.clone();
                 conn.new_challenge(
                     &ctx.author().id.to_string(),

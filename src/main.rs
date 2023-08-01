@@ -1,3 +1,5 @@
+mod errors;
+
 mod challenge;
 use challenge::*;
 
@@ -13,9 +15,6 @@ use poise::serenity_prelude::{self as serenity, UserId};
 use serenity::GatewayIntents;
 
 use tracing::{info, warn};
-
-use core::task::Context as TContext;
-use futures::task::noop_waker_ref;
 
 type Error = Box<dyn StdError + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
@@ -50,8 +49,8 @@ async fn main() {
     let mut owners = HashSet::new();
     // Main account
     owners.insert(UserId(275797064674312193));
-    // Test account
-    owners.insert(UserId(1112188266024812544));
+    // Test account - alphacoms
+    owners.insert(UserId(1135808742785556512));
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {

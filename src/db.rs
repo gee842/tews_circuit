@@ -4,16 +4,17 @@ use std::{
     pin::Pin,
 };
 
+use super::errors::Error;
+
 use async_recursion::async_recursion;
 use futures::Future;
-use tokio_util::time::DelayQueue;
 use tracing::info;
 
 use chrono::{NaiveDate, NaiveDateTime, Utc};
 use sqlx::{
     query,
     sqlite::{SqlitePool, SqlitePoolOptions},
-    Connection, Error as SqlxError, Row,
+    Error as SqlxError, Row,
 };
 
 #[derive(Clone)]
@@ -72,11 +73,12 @@ impl Database {
             }
         };
 
+        // recusion guard
         if let Some(succeeded) = success {
             return Ok(succeeded);
         }
 
-        match query("INSERT INTO History VALUES (?, ?, ?, ?, ?);")
+        if let Err(e) = query("INSERT INTO History VALUES (?, ?, ?, ?, ?);")
             .bind(challenger)
             .bind(challenged)
             .bind(date)
@@ -85,34 +87,23 @@ impl Database {
             .execute(&self.conn)
             .await
         {
-            Err(e) => {
-                // Checks for an error related to the insert query
-                let error = e.as_database_error();
-                if let None = error {
-                    return Ok(false);
-                }
-
-                let error = error.unwrap();
-                let code = error.code().unwrap();
-
-                // 787 is the error code for foreign key constraint not met.
-                // Meaning either the challenger or the challenged has not
-                // been added to the Players table.
-                if code != "787" {
-                    let msg = format!("Error code: {}\nMessage: {}", code, error.message());
-                    return Err(SqlxError::Protocol(msg));
-                } else {
+            match Error::kind(e) {
+                Error::ForeignKeyConstraintNotMet => {
                     info!("Unregistered player(s) detected, adding them to the database.");
                     self.find_missing_player(challenger, challenged).await?;
+
                     info!("New player(s) registered. Re-running function.");
                     self.new_challenge(challenger, challenged, date, None)
                         .await?;
                 }
+                Error::Unknown(msg) => {
+                    return Err(SqlxError::Protocol(msg));
+                }
+                Error::None => {}
             }
-            _ => {}
         };
 
-        info!("New challenge added to the challenges table.");
+        info!("New challenge added.");
         Ok(true)
     }
 
@@ -124,22 +115,22 @@ impl Database {
         challenger: &str,
         challenged: &str,
     ) -> Result<(), SqlxError> {
-        let rows = query("SELECT * FROM Players WHERE UID = ? OR ?")
-            .bind(challenger)
-            .bind(challenged)
+        let challenger_query = query("SELECT * FROM Players WHERE UID = ?")
+            .bind(challenger.parse::<f64>().unwrap())
             .fetch_all(&self.conn)
             .await?;
 
-        let uids: Vec<&str> = rows.iter().map(|row| row.get(1)).collect();
-        let challenged_missing = !uids.contains(&challenged);
-        let challenger_missing = !uids.contains(&challenger);
+        let challenged_query = query("SELECT * FROM Players WHERE UID = ?")
+            .bind(challenged.parse::<f64>().unwrap())
+            .fetch_all(&self.conn)
+            .await?;
 
-        if challenger_missing {
+        if challenger_query.len() == 0 {
             self.add_new_player(challenger).await?;
             info!("The challenger is missing. Added successfully.");
         }
 
-        if challenged_missing {
+        if challenged_query.len() == 0 {
             self.add_new_player(challenged).await?;
             info!("The challenged user missing. Added successfully.");
         }
@@ -179,7 +170,7 @@ impl Database {
             .await
         {
             Ok(rows) => rows,
-            Err(e) => return matches,
+            Err(_e) => return matches,
         };
 
         for row in rows {
