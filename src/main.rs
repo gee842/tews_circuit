@@ -3,9 +3,6 @@ mod errors;
 mod challenge;
 use challenge::*;
 
-mod utils;
-use utils::*;
-
 mod db;
 use db::Database;
 
@@ -18,6 +15,13 @@ use tracing::{info, warn};
 
 type Error = Box<dyn StdError + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
+
+#[poise::command(prefix_command)]
+pub async fn register(ctx: Context<'_>) -> Result<(), Error> {
+    poise::builtins::register_application_commands_buttons(ctx).await?;
+
+    Ok(())
+}
 
 // User data, which is stored and accessible in all command invocations
 // The connection to the database can be placed in here.

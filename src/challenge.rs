@@ -3,13 +3,15 @@ use super::*;
 use std::time::Duration;
 
 use poise::serenity_prelude::{
-    self as serenity, CollectComponentInteraction, CreateActionRow, MessageBuilder,
+    ButtonStyle, CollectComponentInteraction, CreateActionRow, CreateButton, MessageBuilder,
 };
 
-async fn create_challenge_menu(ctx: Context<'_>, user: &serenity::User) -> Result<(), Error> {
-    let accept_uuid = ctx.id();
-    let reject_uuid = accept_uuid + 1;
-
+async fn create_challenge_menu(
+    ctx: Context<'_>,
+    accept_uuid: u64,
+    reject_uuid: u64,
+    user: &serenity::User,
+) -> Result<(), Error> {
     ctx.channel_id().to_channel(&ctx).await?;
     let announcement = MessageBuilder::new()
         .push_bold_safe(user.clone())
@@ -17,8 +19,19 @@ async fn create_challenge_menu(ctx: Context<'_>, user: &serenity::User) -> Resul
         .build();
 
     let mut action_row = CreateActionRow::default();
-    let accept = create_button(serenity::ButtonStyle::Primary, "Accept", accept_uuid);
-    let reject = create_button(serenity::ButtonStyle::Primary, "Reject", reject_uuid);
+
+    let accept = CreateButton::default()
+        .style(ButtonStyle::Primary)
+        .label("Accept")
+        .custom_id(accept_uuid)
+        .clone();
+
+    let reject = CreateButton::default()
+        .style(ButtonStyle::Primary)
+        .label("Reject")
+        .custom_id(reject_uuid)
+        .clone();
+
     action_row.add_button(accept);
     action_row.add_button(reject);
 
@@ -45,7 +58,7 @@ pub async fn challenge(
         return Ok(());
     };
 
-    create_challenge_menu(ctx, &user_challenged).await?;
+    create_challenge_menu(ctx, accept_uuid, reject_uuid, &user_challenged).await?;
 
     while let Some(mci) = CollectComponentInteraction::new(&ctx)
         .author_id(user_challenged.id)
