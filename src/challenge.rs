@@ -138,27 +138,3 @@ pub async fn pending_matches(ctx: Context<'_>) -> Result<(), Error> {
     dm.say(&ctx, msg).await?;
     Ok(())
 }
-
-/// Goes through the database and adds pending events to a delay queue.
-/// https://docs.rs/tokio-util/latest/tokio_util/time/struct.DelayQueue.html
-pub async fn check_matches() -> Result<bool, SqlxError> {
-    let connection = Database::new().await?;
-    // TODO: Use this queue for something. The function will queue up
-    // the incoming matches but nothing is done with that information.
-    // Take a look at poll_expired:
-    // https://docs.rs/tokio-util/latest/tokio_util/time/struct.DelayQueue.html#method.poll_expired
-    let mut queue = connection.queue_all_pending_matches().await?;
-    if queue.is_empty() {
-        info!("There are no pending matches.");
-        return Ok(true);
-    }
-
-    let mut cx = TContext::from_waker(noop_waker_ref());
-    loop {
-        let uids = connection.get_player_uids().await?;
-        queue.poll_expired(&mut cx);
-        break;
-    }
-
-    Ok(true)
-}

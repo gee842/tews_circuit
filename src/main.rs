@@ -71,7 +71,6 @@ async fn main() {
         .setup(|ctx, _ready, framework| {
             info!("Tews is online.");
             Box::pin(async move {
-                let _ = tokio::spawn(check_matches()).await?;
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                 Ok(Data { database })
             })
