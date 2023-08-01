@@ -88,9 +88,6 @@ impl Database {
             .await
         {
             match Error::kind(e) {
-                // TODO: Nothing is happening because there is an issue 
-                // with the foreign key for the challenged row in History.
-                // It cannot be set. Refer to https://github.com/sqlitebrowser/sqlitebrowser/issues/3420
                 Error::ForeignKeyConstraintNotMet => {
                     info!("Unregistered player(s) detected, adding them to the database.");
                     self.find_missing_player(challenger, challenged).await?;
