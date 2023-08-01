@@ -1,16 +1,14 @@
 use std::{
     fs::{self, OpenOptions},
     io::ErrorKind,
-    pin::Pin,
 };
 
 use super::errors::Error;
 
 use async_recursion::async_recursion;
-use futures::Future;
 use tracing::info;
 
-use chrono::{NaiveDate, NaiveDateTime, Utc};
+use chrono::NaiveDate;
 use sqlx::{
     query,
     sqlite::{SqlitePool, SqlitePoolOptions},
@@ -145,63 +143,6 @@ impl Database {
             .await?;
 
         Ok(())
-    }
-}
-
-// Data functions
-impl Database {
-    pub async fn time_for_match(&self) -> Vec<(f64, f64, String)> {
-        let mut matches = vec![];
-        // TODO: Identify what you should actually return when it is the Err match arm.
-        let rows = match query("SELECT * FROM History WHERE Finished = 0")
-            .fetch_all(&self.conn)
-            .await
-        {
-            Ok(rows) => rows,
-            Err(_e) => return matches,
-        };
-
-        for row in rows {
-            let date = match row.get(2) {
-                Some(date) => date,
-                None => return matches,
-            };
-
-            let match_datetime = match NaiveDateTime::parse_from_str(date, "%e %b %Y %H:%M") {
-                Ok(match_datetime) => match_datetime,
-                Err(_) => return matches,
-            };
-
-            // let date = DateTime::from_utc(match_datetime, 8).date_naive();
-            let current_datetime = Utc::now().naive_utc();
-            let remaining_time = match_datetime - current_datetime;
-            let days = remaining_time.num_days();
-            let hours = remaining_time.num_hours();
-            let minute = remaining_time.num_minutes();
-
-            if days <= 1 || hours <= 1 || minute <= 5 {
-                let challenger: f64 = row.get(0);
-                let challenged: f64 = row.get(1);
-                let date = format!("{}d {}h {}min", days, hours, minute);
-                matches.push((challenger, challenged, date));
-            }
-        }
-
-        matches
-    }
-
-    pub fn get_player_uids<'a>(
-        &'a self,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<String>, SqlxError>> + 'a>> {
-        Box::pin(async move {
-            let rows = query("SELECT UID FROM Players")
-                .fetch_all(&self.conn)
-                .await?;
-
-            let uid: Vec<String> = rows.iter().map(|row| row.get(0)).collect();
-
-            Ok(uid)
-        })
     }
 }
 
