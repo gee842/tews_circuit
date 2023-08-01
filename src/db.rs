@@ -115,23 +115,11 @@ impl Database {
         challenger: &str,
         challenged: &str,
     ) -> Result<(), SqlxError> {
-        let challenger_query = query("SELECT * FROM Players WHERE UID = ?")
-            .bind(challenger.parse::<f64>().unwrap())
-            .fetch_all(&self.conn)
-            .await?;
-
-        let challenged_query = query("SELECT * FROM Players WHERE UID = ?")
-            .bind(challenged.parse::<f64>().unwrap())
-            .fetch_all(&self.conn)
-            .await?;
-
-        if challenger_query.len() == 0 {
-            self.add_new_player(challenger).await?;
+        if let Ok(_) = self.add_new_player(challenger).await {
             info!("The challenger is missing. Added successfully.");
         }
 
-        if challenged_query.len() == 0 {
-            self.add_new_player(challenged).await?;
+        if let Ok(_) = self.add_new_player(challenged).await {
             info!("The challenged user missing. Added successfully.");
         }
 
