@@ -55,7 +55,7 @@ impl Database {
     /// - date: The date and time of the challenge.
     /// - success: A guard to prevent the function from recusing infinitely.
     #[async_recursion]
-    pub async fn new_challenge(
+    pub async fn add_new_challenge(
         &mut self,
         challenger: &str,
         challenged: &str,
@@ -91,7 +91,7 @@ impl Database {
                     self.find_missing_player(challenger, challenged).await?;
 
                     info!("New player(s) registered. Re-running function.");
-                    self.new_challenge(challenger, challenged, date, None)
+                    self.add_new_challenge(challenger, challenged, date, None)
                         .await?;
                 }
                 Error::Unknown(msg) => {

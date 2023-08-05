@@ -95,7 +95,7 @@ pub async fn challenge(
                 .await
             {
                 let mut conn = ctx.data().database.clone();
-                conn.new_challenge(
+                conn.add_new_challenge(
                     &ctx.author().id.to_string(),
                     &user_challenged.id.to_string(),
                     &answer.content,
@@ -105,6 +105,8 @@ pub async fn challenge(
 
                 let msg = format!("It is done. The challenge is on {}.", answer.content);
                 channel.say(&ctx, msg).await?;
+
+                let guild = ctx.guild().unwrap();
             }
         } else if reject {
             channel.say(&ctx, "The request was rejected.").await?;
