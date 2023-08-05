@@ -8,6 +8,8 @@ pub enum Error {
     Unknown(String),
     /// Foreign key constraint not met.
     ForeignKeyConstraintNotMet,
+    /// Database is tied up in some other operation.
+    Locked,
 }
 
 impl Error {

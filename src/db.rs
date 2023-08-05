@@ -6,7 +6,7 @@ use std::{
 use super::errors::Error;
 
 use async_recursion::async_recursion;
-use tracing::info;
+use tracing::{info, warn};
 
 use chrono::NaiveDate;
 use sqlx::{
@@ -96,6 +96,9 @@ impl Database {
                 }
                 Error::Unknown(msg) => {
                     return Err(SqlxError::Protocol(msg));
+                }
+                Error::Locked => {
+                    warn!("Database is busy with another operation, please try again.");
                 }
                 Error::None => {}
             }
