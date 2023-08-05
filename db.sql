@@ -3,11 +3,14 @@ CREATE TABLE IF NOT EXISTS "Ranks" (
 	PRIMARY KEY("Name")
 );
 
-INSERT INTO Ranks (Name) VALUES
-('Unrated'),
-('Gold'),
-('Emerald'),
-('Diamond');
+INSERT INTO Ranks (Name)
+SELECT 'Unrated' WHERE NOT EXISTS (SELECT 1 FROM Ranks WHERE Name = 'Unrated')
+UNION
+SELECT 'Gold' WHERE NOT EXISTS (SELECT 1 FROM Ranks WHERE Name = 'Gold')
+UNION
+SELECT 'Emerald' WHERE NOT EXISTS (SELECT 1 FROM Ranks WHERE Name = 'Emerald')
+UNION
+SELECT 'Diamond' WHERE NOT EXISTS (SELECT 1 FROM Ranks WHERE Name = 'Diamond');
 
 CREATE TABLE IF NOT EXISTS "Players" (
 	"UID"	TEXT,
