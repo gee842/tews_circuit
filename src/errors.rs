@@ -24,11 +24,15 @@ impl Error {
 
         if code == "787" {
             warn!("Error::ForeignKeyConstraintNotMet");
-
             return Error::ForeignKeyConstraintNotMet;
         }
 
-        let msg = format!("Error code: {}\nMessage: {}", code, error.message());
+        if code == "5" {
+            warn!("Database is tied up in some other operation.");
+            return Error::Locked;
+        }
+
+        let msg = format!("Error code: '{}'\nMessage: {}", code, error.message());
         Error::Unknown(msg)
     }
 }
