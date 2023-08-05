@@ -1,11 +1,13 @@
-CREATE TABLE IF NOT EXISTS "History" (
-	"Challenger"	TEXT,
-	"Challenged"	TEXT,
-	"Date"	DATE,
-	"Finished"	INTEGER,
-	"Winner"	INTEGER,
-	FOREIGN KEY("Challenger") REFERENCES "Players"("UID")
+CREATE TABLE IF NOT EXISTS "Ranks" (
+	"Name"	TEXT,
+	PRIMARY KEY("Name")
 );
+
+INSERT INTO Ranks (Name) VALUES
+('Unrated'),
+('Gold'),
+('Emerald'),
+('Diamond');
 
 CREATE TABLE IF NOT EXISTS "Players" (
 	"UID"	TEXT,
@@ -19,7 +21,13 @@ CREATE TABLE IF NOT EXISTS "Players" (
 	PRIMARY KEY("UID")
 );
 
-CREATE TABLE IF NOT EXISTS "Ranks" (
-	"Name"	TEXT,
-	PRIMARY KEY("Name")
+CREATE TABLE IF NOT EXISTS "History" (
+	"Challenger"	TEXT,
+	"Challenged"	TEXT,
+	"Date"	DATE,
+	"Finished"	INTEGER,
+	"Winner"	INTEGER,
+	FOREIGN KEY("Challenger") REFERENCES "Players"("UID")
+	FOREIGN KEY("Challenged") REFERENCES "Players"("UID")
 );
+

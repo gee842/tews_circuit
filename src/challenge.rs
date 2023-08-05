@@ -94,7 +94,6 @@ pub async fn challenge(
                 .timeout(Duration::from_secs(60 * 5))
                 .await
             {
-                // Adds new challenges to database.
                 let mut conn = ctx.data().database.clone();
                 conn.new_challenge(
                     &ctx.author().id.to_string(),
