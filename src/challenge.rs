@@ -108,36 +108,6 @@ pub async fn challenge(
                 )
                 .await?;
 
-                // channel.say(&ctx, msg).await?;
-                let datetime =
-                    NaiveDateTime::parse_from_str(&answer.content, "%e %b %Y %H:%M").unwrap();
-                // The timezone here is set to CEST which is where the majority of players from
-                // Tews are from.
-                let tz_offset = FixedOffset::east_opt(2 * 3600).unwrap();
-                let dt_with_tz: DateTime<FixedOffset> =
-                    tz_offset.from_local_datetime(&datetime).unwrap();
-
-                let guild = ctx.guild_id().unwrap();
-                guild
-                    .create_scheduled_event(&ctx, |event| {
-                        info!("Creating event, setting to UTC-2 (CEST, central EU).");
-                        let name = format!("{} vs. {}", ctx.author().name, user_challenged.name);
-                        event.name(name);
-
-                        event.start_time(dt_with_tz);
-                        event.kind(ScheduledEventType::Voice);
-
-                        let event_channel_id = match ChannelId::from_str(TEST_GENERAL) {
-                            Ok(channel) => channel,
-                            // This arm matches when command is ran in Tews.
-                            Err(_) => ChannelId::from_str(TEWS_PUBLIC).unwrap(),
-                        };
-
-                        event.channel_id(event_channel_id);
-                        event
-                    })
-                    .await?;
-
                 let msg = format!("It is done. The challenge is on {}. A public event is created to help you keep track of the time of the challenge.", answer.content);
                 ctx.say(msg).await?;
             }
@@ -145,7 +115,7 @@ pub async fn challenge(
             ctx.say("The request was rejected.").await?;
         }
 
-        mci.message.delete(ctx).await?;
+        mci.message.reply(&ctx, "The command has finished executing.").await?;
     }
 
     Ok(())
