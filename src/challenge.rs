@@ -1,9 +1,12 @@
 use super::*;
 
-use std::time::Duration;
+use std::{str::FromStr, time::Duration};
+
+use chrono::{DateTime, FixedOffset, NaiveDateTime, TimeZone};
 
 use poise::serenity_prelude::{
-    ButtonStyle, CollectComponentInteraction, CreateActionRow, CreateButton, MessageBuilder,
+    ButtonStyle, ChannelId, CollectComponentInteraction, CreateActionRow, CreateButton,
+    MessageBuilder, ScheduledEventType,
 };
 
 async fn create_challenge_menu(
@@ -103,10 +106,33 @@ pub async fn challenge(
                 )
                 .await?;
 
-                let msg = format!("It is done. The challenge is on {}.", answer.content);
+                let msg = format!("It is done. The challenge is on {}. A public event is created to help you keep track of the time of the challenge.", answer.content);
                 channel.say(&ctx, msg).await?;
 
-                let guild = ctx.guild().unwrap();
+                let datetime =
+                    NaiveDateTime::parse_from_str(&answer.content, "%e %b %Y %H:%M").unwrap();
+                // The timezone here is set to CEST which is where the majority of players from
+                // Tews are from.
+                let tz_offset = FixedOffset::east_opt(2 * 3600).unwrap();
+                let dt_with_tz: DateTime<FixedOffset> =
+                    tz_offset.from_local_datetime(&datetime).unwrap();
+
+                let guild = ctx.guild_id().unwrap();
+                guild
+                    .create_scheduled_event(&ctx, |event| {
+                        info!("Creating event, setting to UTC-2 (CEST, central EU).");
+                        let name = format!("{} vs. {}", ctx.author().name, user_challenged.name);
+                        event.name(name);
+
+                        event.start_time(dt_with_tz);
+                        event.kind(ScheduledEventType::Voice);
+
+                        let event_channel_id = ChannelId::from_str("976790417058168836").unwrap();
+
+                        event.channel_id(event_channel_id);
+                        event
+                    })
+                    .await?;
             }
         } else if reject {
             channel.say(&ctx, "The request was rejected.").await?;
