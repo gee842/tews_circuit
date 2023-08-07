@@ -1,6 +1,6 @@
 use super::*;
 
-use std::{str::FromStr, time::Duration, iter::repeat};
+use std::{iter::repeat, str::FromStr, time::Duration};
 
 use chrono::{DateTime, FixedOffset, NaiveDateTime, TimeZone};
 
@@ -54,6 +54,8 @@ pub async fn challenge(
     ctx: Context<'_>,
     #[description = "Challenge selected user"] user_challenged: serenity::User,
 ) -> Result<(), Error> {
+    ctx.defer().await?;
+
     let accept_uuid = ctx.id();
     let reject_uuid = accept_uuid + 1;
     if &ctx.author().id == &user_challenged.id {
@@ -106,9 +108,7 @@ pub async fn challenge(
                 )
                 .await?;
 
-                let msg = format!("It is done. The challenge is on {}. A public event is created to help you keep track of the time of the challenge.", answer.content);
-                channel.say(&ctx, msg).await?;
-
+                // channel.say(&ctx, msg).await?;
                 let datetime =
                     NaiveDateTime::parse_from_str(&answer.content, "%e %b %Y %H:%M").unwrap();
                 // The timezone here is set to CEST which is where the majority of players from
@@ -130,16 +130,19 @@ pub async fn challenge(
                         let event_channel_id = match ChannelId::from_str(TEST_GENERAL) {
                             Ok(channel) => channel,
                             // This arm matches when command is ran in Tews.
-                            Err(_) => ChannelId::from_str(TEWS_PUBLIC).unwrap()
+                            Err(_) => ChannelId::from_str(TEWS_PUBLIC).unwrap(),
                         };
 
                         event.channel_id(event_channel_id);
                         event
                     })
                     .await?;
+
+                let msg = format!("It is done. The challenge is on {}. A public event is created to help you keep track of the time of the challenge.", answer.content);
+                ctx.say(msg).await?;
             }
         } else if reject {
-            channel.say(&ctx, "The request was rejected.").await?;
+            ctx.say("The request was rejected.").await?;
         }
 
         mci.message.delete(ctx).await?;
@@ -176,8 +179,9 @@ pub async fn pending_matches(ctx: Context<'_>) -> Result<(), Error> {
     }
 
     let dm = caller.create_dm_channel(&ctx).await?;
-    let msg: String = repeat("=").take(options[0].len()).collect();
-    dm.say(&ctx, msg).await?;
+    dm.say(&ctx, options.join("\n")).await?;
+    ctx.say("Your list of pending matches are sent via dm.")
+        .await?;
 
     Ok(())
 }

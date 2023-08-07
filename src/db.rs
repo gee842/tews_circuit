@@ -1,6 +1,6 @@
 use std::{
     fs::{self, OpenOptions},
-    io::ErrorKind,
+    io::ErrorKind, iter::repeat,
 };
 
 use super::errors::Error;
@@ -161,7 +161,8 @@ impl Database {
                 .await?;
 
         let mut challenges = vec![];
-        info!("=========== {} ===========", user);
+        let msg = format!("=========== {} ===========", user);
+        info!(msg);
         for row in rows {
             let challenged: String = row.get(1);
             let time: String = row.get(2);
@@ -171,7 +172,8 @@ impl Database {
             challenges.push((challenged, time));
         }
 
-        info!("\n");
+        let msg: String = repeat("=").take(msg.len()).collect();
+        info!(msg);
         Ok(challenges)
     }
 }
