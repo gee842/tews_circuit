@@ -1,9 +1,10 @@
+mod challenge;
+mod constants;
+mod db;
 mod errors;
 
-mod challenge;
 use challenge::*;
-
-mod db;
+use constants::*;
 use db::Database;
 
 use std::{collections::HashSet, error::Error as StdError};
@@ -51,10 +52,8 @@ async fn main() {
         | GatewayIntents::GUILD_MESSAGE_REACTIONS;
 
     let mut owners = HashSet::new();
-    // Main account
-    owners.insert(UserId(275797064674312193));
-    // Test account - alphacoms
-    owners.insert(UserId(1135808742785556512));
+    owners.insert(UserId(ALPHABETS));
+    owners.insert(UserId(ALPHACOMS));
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {

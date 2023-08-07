@@ -1,6 +1,6 @@
 use super::*;
 
-use std::{str::FromStr, time::Duration};
+use std::{str::FromStr, time::Duration, iter::repeat};
 
 use chrono::{DateTime, FixedOffset, NaiveDateTime, TimeZone};
 
@@ -127,7 +127,11 @@ pub async fn challenge(
                         event.start_time(dt_with_tz);
                         event.kind(ScheduledEventType::Voice);
 
-                        let event_channel_id = ChannelId::from_str("976790417058168836").unwrap();
+                        let event_channel_id = match ChannelId::from_str(TEST_GENERAL) {
+                            Ok(channel) => channel,
+                            // This arm matches when command is ran in Tews.
+                            Err(_) => ChannelId::from_str(TEWS_PUBLIC).unwrap()
+                        };
 
                         event.channel_id(event_channel_id);
                         event
@@ -172,7 +176,8 @@ pub async fn pending_matches(ctx: Context<'_>) -> Result<(), Error> {
     }
 
     let dm = caller.create_dm_channel(&ctx).await?;
-    let msg = options.join("\n");
+    let msg: String = repeat("=").take(options[0].len()).collect();
     dm.say(&ctx, msg).await?;
+
     Ok(())
 }
