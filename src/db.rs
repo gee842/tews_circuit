@@ -62,8 +62,14 @@ impl Database {
         date: &str,
         success: Option<bool>,
     ) -> Result<bool, SqlxError> {
-        match NaiveDate::parse_from_str(date, "%e %b %Y %H:%M") {
-            Ok(_) => info!("Date format accepted."),
+        let date = match NaiveDateTime::parse_from_str(date, "%e %b %Y %H:%M") {
+            Ok(date) => {
+                // SQLITE doesn't have a DATE data type. But it does support
+                // dates as TEXT in ISO 8601 format.
+                info!("Date format accepted. Converting to ISO 8601");
+                let formatted_date = date.format("%Y-%m-%d %H:%M").to_string();
+                formatted_date
+            }
             Err(_) => {
                 return Err(SqlxError::Protocol(
                     "Invalid date format. Please run the command again.".to_string(),
@@ -79,7 +85,7 @@ impl Database {
         if let Err(e) = query("INSERT INTO History VALUES (?, ?, ?, ?, ?);")
             .bind(challenger)
             .bind(challenged)
-            .bind(date)
+            .bind(date.clone())
             .bind(0)
             .bind("N/A")
             .execute(&self.conn)
@@ -91,7 +97,7 @@ impl Database {
                     self.find_missing_player(challenger, challenged).await?;
 
                     info!("New player(s) registered. Re-running function.");
-                    self.add_new_challenge(challenger, challenged, date, None)
+                    self.add_new_challenge(challenger, challenged, &date, None)
                         .await?;
                 }
                 Error::Unknown(msg) => {
@@ -151,6 +157,18 @@ impl Database {
 
 // Player history
 impl Database {
+    pub async fn closest_matches(&self, user: &str) -> Result<String, SqlxError> {
+        let sql = r#"
+SELECT * FROM 
+History WHERE Challenger = ? OR Challenged = ? AND Finished = 0
+ORDER BY ABS(strftime("%s", "now") - strftime("%s", "Date"))"#;
+
+        let row = query(sql).bind(user).bind(user).fetch_one(&self.conn).await?;
+        let challenged: String = row.get(1);
+
+        Ok(challenged)
+    }
+
     /// `user` - The specified user's pending matches
     pub async fn player_matches(&self, user: &str) -> Result<Vec<(String, String)>, SqlxError> {
         let rows =
