@@ -122,6 +122,34 @@ pub async fn challenge(
 }
 
 #[poise::command(slash_command)]
+pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
+    let caller_id = ctx.author().id;
+    let database = ctx.data().database.clone();
+    let challenged = database
+        .closest_matches(&caller_id.as_u64().to_string())
+        .await?;
+
+    // Ping both users that a match has started.
+    // convert user id to their names
+    let caller_name = caller_id.to_user(&ctx).await?;
+    let challenged_name = UserId(challenged.parse().unwrap()).to_user(&ctx).await?;
+
+
+    let msg = MessageBuilder::new()
+        .push("A match has started between ")
+        .push_bold_safe(caller_name)
+        .push(" and ")
+        .push_bold_safe(challenged_name)
+        .push(".")
+        .build();
+
+    // When the match has finished get them to confirm who wins/loses.
+    ctx.channel_id().say(&ctx, msg).await?;
+
+    Ok(())
+}
+
+#[poise::command(slash_command)]
 pub async fn pending_matches(ctx: Context<'_>) -> Result<(), Error> {
     let caller = ctx.author().id;
 
