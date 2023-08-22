@@ -43,16 +43,42 @@ async fn create_challenge_menu(
     Ok(())
 }
 
-async fn ongoing_match_menu(ctx: Context<'_>, user: &serenity::User) -> Result<(), Error> {
+async fn ongoing_match_menu(
+    ctx: Context<'_>,
+    player_one_id: u64,
+    player_two_id: u64,
+    player_one_name: String,
+    player_two_name: String,
+) -> Result<(), Error> {
+    let mut action_row = CreateActionRow::default();
+
+    let player_one_wins = format!("{} wins!", player_one_name);
+    let player_one_button = CreateButton::default()
+        .style(ButtonStyle::Primary)
+        .label(player_one_wins)
+        .custom_id(player_one_id)
+        .clone();
+
+    let player_two_wins = format!("{} wins!", player_two_name);
+    let player_two_button = CreateButton::default()
+        .style(ButtonStyle::Primary)
+        .label(player_two_wins)
+        .custom_id(player_two_id)
+        .clone();
+
+    action_row.add_button(player_one_button);
+    action_row.add_button(player_two_button);
+
+    ctx.send(|m| m.content("").components(|c| c.add_action_row(action_row)))
+        .await?;
+
     Ok(())
 }
 
-/// A slash command to challenger another user.
-/// - `user`: User to challenge.
 #[poise::command(slash_command)]
 pub async fn challenge(
     ctx: Context<'_>,
-    #[description = "Challenge selected user"] user_challenged: serenity::User,
+    #[description = "User to challenge"] user_challenged: serenity::User,
 ) -> Result<(), Error> {
     ctx.defer().await?;
 
@@ -122,30 +148,78 @@ pub async fn challenge(
 
     Ok(())
 }
-
 #[poise::command(slash_command)]
 pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
     let caller_id = ctx.author().id;
     let database = ctx.data().database.clone();
-    let challenged = database
+    let other_player = database
         .closest_matches(&caller_id.as_u64().to_string())
         .await?;
+
+    let other_player = UserId(other_player.parse().unwrap());
 
     // Ping both users that a match has started.
     // convert user id to their names
     let caller_name = caller_id.to_user(&ctx).await?;
-    let challenged_name = UserId(challenged.parse().unwrap()).to_user(&ctx).await?;
+    let other_player_name = other_player.to_user(&ctx).await?;
 
-    let msg = MessageBuilder::new()
+    let mut msg = MessageBuilder::new()
         .push("A match has started between ")
-        .push_bold_safe(caller_name)
+        .push_bold_safe(caller_name.clone())
         .push(" and ")
-        .push_bold_safe(challenged_name)
-        .push(".")
+        .push_bold_safe(other_player_name.clone())
+        .push(". When the match has concluded, please select the winner.")
         .build();
 
-    // When the match has finished get them to confirm who wins/loses.
     ctx.channel_id().say(&ctx, msg).await?;
+
+    // When the match has finished get them to confirm who wins/loses.
+    ongoing_match_menu(
+        ctx,
+        caller_id.0,
+        other_player.0,
+        caller_name.name,
+        other_player_name.name,
+    )
+    .await?;
+
+    let conn = ctx.data().database.clone();
+
+    while let Some(mci) = CollectComponentInteraction::new(&ctx)
+        .channel_id(ctx.channel_id())
+        .await
+    {
+        let winner_id: u64 = mci.data.custom_id.parse().unwrap();
+        let winner_name = UserId(winner_id).to_user(&ctx).await?;
+
+        let loser = if winner_id == caller_id.0 {
+            other_player.0
+        } else {
+            caller_id.0
+        };
+
+        // Check point totals
+        let winner_current_points = conn.points_data(&winner_id.to_string()).await?;
+        let winner_rank = conn.rank_data(&winner_id.to_string()).await?;
+
+        let loser_current_points  = conn.points_data(&loser.to_string()).await?;
+        let loser_rank = conn.rank_data(&loser.to_string()).await?;
+
+        // Should make an enum for this for easy comparison.
+        if winner_rank == loser_rank {
+        }
+
+        msg = MessageBuilder::new()
+            .push("The winner is ")
+            .mention(&winner_name)
+            .build();
+
+        ctx.say(msg).await?;
+
+        mci.message
+            .reply(&ctx, "The command has finished executing.")
+            .await?;
+    }
 
     Ok(())
 }

@@ -57,7 +57,7 @@ async fn main() {
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![challenge(), register(), pending_matches()],
+            commands: vec![challenge(), register(), pending_matches(), start_match()],
             skip_checks_for_owners: false,
             prefix_options: poise::PrefixFrameworkOptions {
                 prefix: Some("-".into()),

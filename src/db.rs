@@ -156,8 +156,33 @@ impl Database {
     }
 }
 
-// Player history
+// Player related methods
 impl Database {
+    pub async fn rank_data(&self, user_id: &str) -> Result<String, SqlxError> {
+        // SQL query for Players table where ID is equal to user_id
+        let result = query("SELECT * FROM Players WHERE ID = ?;")
+            .bind(user_id)
+            .fetch_one(&self.conn)
+            .await?;
+
+        let rank: String = result.get(4);
+
+        Ok(rank)
+    }
+
+    pub async fn points_data(&self, user_id: &str) -> Result<f64, SqlxError> {
+        // SQL query for Players table where ID is equal to user_id
+        let result = query("SELECT * FROM Players WHERE ID = ?;")
+            .bind(user_id)
+            .fetch_one(&self.conn)
+            .await?;
+
+        let points: f64 = result.get(5);
+
+        Ok(points)
+
+    }
+
     pub async fn closest_matches(&self, caller_id: &str) -> Result<String, SqlxError> {
         // TODO: Add a check where if the date of the challenge is past
         // current date, penalise the challenged user.
