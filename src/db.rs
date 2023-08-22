@@ -1,6 +1,7 @@
 use std::{
     fs::{self, OpenOptions},
-    io::ErrorKind, iter::repeat,
+    io::ErrorKind,
+    iter::repeat,
 };
 
 use super::errors::Error;
@@ -8,7 +9,7 @@ use super::errors::Error;
 use async_recursion::async_recursion;
 use tracing::{info, warn};
 
-use chrono::NaiveDate;
+use chrono::NaiveDateTime;
 use sqlx::{
     query,
     sqlite::{SqlitePool, SqlitePoolOptions},
@@ -157,16 +158,29 @@ impl Database {
 
 // Player history
 impl Database {
-    pub async fn closest_matches(&self, user: &str) -> Result<String, SqlxError> {
+    pub async fn closest_matches(&self, caller_id: &str) -> Result<String, SqlxError> {
+        // TODO: Add a check where if the date of the challenge is past
+        // current date, penalise the challenged user.
+
         let sql = r#"
 SELECT * FROM 
 History WHERE Challenger = ? OR Challenged = ? AND Finished = 0
 ORDER BY ABS(strftime("%s", "now") - strftime("%s", "Date"))"#;
 
-        let row = query(sql).bind(user).bind(user).fetch_one(&self.conn).await?;
-        let challenged: String = row.get(1);
+        let row = query(sql)
+            .bind(caller_id)
+            .bind(caller_id)
+            .fetch_one(&self.conn)
+            .await?;
 
-        Ok(challenged)
+        let mut other_id: String = row.get(1);
+
+        // Gets the id of the other user.
+        if caller_id == other_id {
+            other_id = row.get(0);
+        }
+
+        Ok(other_id)
     }
 
     /// `user` - The specified user's pending matches

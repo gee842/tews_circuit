@@ -1,12 +1,9 @@
 use super::*;
 
-use std::{iter::repeat, str::FromStr, time::Duration};
-
-use chrono::{DateTime, FixedOffset, NaiveDateTime, TimeZone};
+use std::time::Duration;
 
 use poise::serenity_prelude::{
-    ButtonStyle, ChannelId, CollectComponentInteraction, CreateActionRow, CreateButton,
-    MessageBuilder, ScheduledEventType,
+    ButtonStyle, CollectComponentInteraction, CreateActionRow, CreateButton, MessageBuilder,
 };
 
 async fn create_challenge_menu(
@@ -15,7 +12,6 @@ async fn create_challenge_menu(
     reject_uuid: u64,
     user: &serenity::User,
 ) -> Result<(), Error> {
-    ctx.channel_id().to_channel(&ctx).await?;
     let announcement = MessageBuilder::new()
         .push_bold_safe(user.clone())
         .push(" you have been challenged. Do you accept?")
@@ -44,6 +40,10 @@ async fn create_challenge_menu(
     })
     .await?;
 
+    Ok(())
+}
+
+async fn ongoing_match_menu(ctx: Context<'_>, user: &serenity::User) -> Result<(), Error> {
     Ok(())
 }
 
@@ -115,7 +115,9 @@ pub async fn challenge(
             ctx.say("The request was rejected.").await?;
         }
 
-        mci.message.reply(&ctx, "The command has finished executing.").await?;
+        mci.message
+            .reply(&ctx, "The command has finished executing.")
+            .await?;
     }
 
     Ok(())
@@ -133,7 +135,6 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
     // convert user id to their names
     let caller_name = caller_id.to_user(&ctx).await?;
     let challenged_name = UserId(challenged.parse().unwrap()).to_user(&ctx).await?;
-
 
     let msg = MessageBuilder::new()
         .push("A match has started between ")
