@@ -1,6 +1,7 @@
 mod challenge;
 mod constants;
 mod db;
+mod rank;
 mod errors;
 
 use challenge::*;

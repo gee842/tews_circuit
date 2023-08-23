@@ -1,4 +1,5 @@
 use super::*;
+use rank::Rank;
 
 use std::time::Duration;
 
@@ -198,20 +199,43 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
             caller_id.0
         };
 
+        let loser_name = UserId(loser).to_user(&ctx).await?;
+
         // Check point totals
-        let winner_current_points = conn.points_data(&winner_id.to_string()).await?;
-        let winner_rank = conn.rank_data(&winner_id.to_string()).await?;
+        // TODO: Each player should be its own struct.
+        let winner_points = conn.points_data(&winner_id.to_string()).await?;
+        let winner_rank = Rank::from(winner_points);
 
-        let loser_current_points  = conn.points_data(&loser.to_string()).await?;
-        let loser_rank = conn.rank_data(&loser.to_string()).await?;
+        let loser_points = conn.points_data(&loser.to_string()).await?;
+        let loser_rank = Rank::from(loser_points);
 
-        // Should make an enum for this for easy comparison.
-        if winner_rank == loser_rank {
-        }
+        info!("Winner rank: {}", winner_rank);
+        info!("Loser rank: {}", loser_rank);
+
+        // Me: Gold, Oppo: Gold
+        let (winner_new_points, loser_new_points) = if winner_rank == loser_rank {
+            (winner_points + 25, loser_points - 25)
+        } else if winner_rank > loser_rank {
+            (winner_points + 10, loser_points - 15)
+        } else {
+            // Winner rank less than loser rank
+            (winner_points + 25, loser_points - 30)
+        };
+
+        let new_points = format!(
+            "\n{}: {} -> {}\n{}: {} -> {}",
+            winner_name,
+            winner_points,
+            winner_new_points,
+            loser_name,
+            loser_points,
+            loser_new_points
+        );
 
         msg = MessageBuilder::new()
             .push("The winner is ")
             .mention(&winner_name)
+            .push(new_points)
             .build();
 
         ctx.say(msg).await?;
