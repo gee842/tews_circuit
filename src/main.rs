@@ -2,6 +2,7 @@ mod challenge;
 mod constants;
 mod db;
 mod rank;
+mod player;
 mod errors;
 
 use challenge::*;

@@ -1,10 +1,13 @@
+use crate::player::Player;
+
 use super::*;
 use rank::Rank;
 
 use std::time::Duration;
 
 use poise::serenity_prelude::{
-    ButtonStyle, CollectComponentInteraction, CreateActionRow, CreateButton, MessageBuilder,
+    ButtonStyle, CacheHttp, CollectComponentInteraction, CreateActionRow, CreateButton,
+    MessageBuilder,
 };
 
 async fn create_challenge_menu(
@@ -191,50 +194,48 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
         .await
     {
         let winner_id: u64 = mci.data.custom_id.parse().unwrap();
-        let winner_name = UserId(winner_id).to_user(&ctx).await?;
+        let winner_points = conn.points_data(&winner_id.to_string()).await?;
+        let winner = ctx.http().get_user(winner_id).await?;
 
-        let loser = if winner_id == caller_id.0 {
+        let mut winner = Player::new(winner, winner_points).await;
+
+        let loser_id = if winner_id == caller_id.0 {
             other_player.0
         } else {
             caller_id.0
         };
 
-        let loser_name = UserId(loser).to_user(&ctx).await?;
+        let loser_points = conn.points_data(&loser_id.to_string()).await?;
+        let loser = ctx.http().get_user(loser_id).await?;
+        let mut loser = Player::new(loser, loser_points).await;
 
-        // Check point totals
-        // TODO: Each player should be its own struct.
-        let winner_points = conn.points_data(&winner_id.to_string()).await?;
-        let winner_rank = Rank::from(winner_points);
+        info!("Winner\n{}", winner);
+        info!("Loser\n{}", loser);
 
-        let loser_points = conn.points_data(&loser.to_string()).await?;
-        let loser_rank = Rank::from(loser_points);
-
-        info!("Winner rank: {}", winner_rank);
-        info!("Loser rank: {}", loser_rank);
-
-        // Me: Gold, Oppo: Gold
-        let (winner_new_points, loser_new_points) = if winner_rank == loser_rank {
-            (winner_points + 25, loser_points - 25)
-        } else if winner_rank > loser_rank {
-            (winner_points + 10, loser_points - 15)
+        let (winner_new_points, loser_new_points) = if winner.rank == loser.rank {
+            (winner.add(25), loser.minus(25))
+        } else if winner.rank > loser.rank {
+            (winner.add(10), loser.minus(15))
         } else {
             // Winner rank less than loser rank
-            (winner_points + 25, loser_points - 30)
+            (winner.add(25), loser.minus(30))
         };
 
         let new_points = format!(
-            "\n{}: {} -> {}\n{}: {} -> {}",
-            winner_name,
+            "\nWinner: {}, {} -> {}\nLoser: {}, {} -> {}",
+            winner.name(),
             winner_points,
             winner_new_points,
-            loser_name,
+            loser.name(),
             loser_points,
             loser_new_points
         );
 
+        info!("{}", new_points);
+
         msg = MessageBuilder::new()
             .push("The winner is ")
-            .mention(&winner_name)
+            .mention(&winner.user())
             .push(new_points)
             .build();
 
