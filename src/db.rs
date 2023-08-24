@@ -50,10 +50,6 @@ impl Database {
 // Implementations of challenge functions
 impl Database {
     /// Adds a new entry to the History table.
-    /// # Parameters
-    /// - challenger: The UID of the challenger.
-    /// - challenged: The UID of the challenged.
-    /// - date: The date and time of the challenge.
     /// - success: A guard to prevent the function from recusing infinitely.
     #[async_recursion]
     pub async fn add_new_challenge(
@@ -158,10 +154,10 @@ impl Database {
 
 // Player related methods
 impl Database {
-    pub async fn points_data(&self, user_id: &str) -> Result<u16, SqlxError> {
+    pub async fn points_data(&self, user_id: u64) -> Result<u16, SqlxError> {
         // SQL query for Players table where ID is equal to user_id
         let result = query("SELECT * FROM Players WHERE UID = ?;")
-            .bind(user_id)
+            .bind(user_id.to_string())
             .fetch_one(&self.conn)
             .await?;
 

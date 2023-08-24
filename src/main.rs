@@ -1,19 +1,20 @@
-mod challenge;
+mod battle;
+mod history;
+mod player;
+
 mod constants;
 mod db;
-mod rank;
-mod player;
 mod errors;
-
-use challenge::*;
-use constants::*;
-use db::Database;
 
 use std::{collections::HashSet, error::Error as StdError};
 
-use poise::serenity_prelude::{self as serenity, UserId};
-use serenity::GatewayIntents;
+use battle::{challenge::*, start_match::*};
+use history::pending_matches::pending_matches;
 
+use constants::*;
+use db::Database;
+
+use poise::serenity_prelude::{GatewayIntents, UserId};
 use tracing::{info, warn};
 
 type Error = Box<dyn StdError + Send + Sync>;

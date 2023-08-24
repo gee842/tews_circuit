@@ -1,0 +1,121 @@
+use poise::serenity_prelude::User;
+use poise::serenity_prelude::{ButtonStyle, CreateActionRow, CreateButton};
+use poise::serenity_prelude::{CacheHttp, CollectComponentInteraction, MessageBuilder};
+
+use crate::*;
+use player::Player;
+
+async fn ongoing_match_menu(
+    ctx: Context<'_>,
+    player_one: User,
+    player_two: User,
+) -> Result<(), Error> {
+    let mut action_row = CreateActionRow::default();
+
+    let player_one_wins = format!("{} wins!", player_one.name);
+    let player_one_button = CreateButton::default()
+        .style(ButtonStyle::Primary)
+        .label(player_one_wins)
+        .custom_id(player_one.id)
+        .clone();
+
+    let player_two_wins = format!("{} wins!", player_two.name);
+    let player_two_button = CreateButton::default()
+        .style(ButtonStyle::Primary)
+        .label(player_two_wins)
+        .custom_id(player_two.id)
+        .clone();
+
+    action_row.add_button(player_one_button);
+    action_row.add_button(player_two_button);
+
+    ctx.send(|m| m.content("").components(|c| c.add_action_row(action_row)))
+        .await?;
+
+    Ok(())
+}
+
+#[poise::command(slash_command)]
+pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
+    let database = ctx.data().database.clone();
+    let http = ctx.http();
+
+    // The person who ran the `start_match` command.
+    let caller = ctx.author();
+
+    let other_player = database.closest_matches(&caller.id.to_string()).await?;
+    let other_player = http.get_user(other_player.parse().unwrap()).await?;
+
+    let mut msg = MessageBuilder::new()
+        .push("A match has started between ")
+        .push_bold_safe(caller.clone())
+        .push(" and ")
+        .push_bold_safe(other_player.clone())
+        .push(". When the match has concluded, please select the winner.")
+        .build();
+
+    ctx.channel_id().say(&ctx, msg).await?;
+
+    // When the match has finished get them to confirm who wins/loses.
+    ongoing_match_menu(ctx, caller.clone(), other_player.clone()).await?;
+
+    let conn = ctx.data().database.clone();
+
+    while let Some(mci) = CollectComponentInteraction::new(&ctx)
+        .channel_id(ctx.channel_id())
+        .await
+    {
+        let winner_id: u64 = mci.data.custom_id.parse().unwrap();
+        let winner_points = conn.points_data(winner_id).await?;
+        let winner = ctx.http().get_user(winner_id).await?;
+
+        let mut winner = Player::new(winner, winner_points).await;
+
+        let loser = if winner.user().id == caller.id {
+            other_player.clone()
+        } else {
+            caller.clone()
+        };
+
+        let loser_points = conn.points_data(loser.id.0).await?;
+        let mut loser = Player::new(loser, loser_points).await;
+
+        info!("Winner\n{}", winner);
+        info!("Loser\n{}", loser);
+
+        let (winner_new_points, loser_new_points) = if winner.rank == loser.rank {
+            (winner.add(25), loser.minus(25))
+        } else if winner.rank > loser.rank {
+            (winner.add(10), loser.minus(15))
+        } else {
+            // Winner rank less than loser rank
+            (winner.add(25), loser.minus(30))
+        };
+
+        let new_points = format!(
+            "\nWinner: {}, {} -> {}\nLoser: {}, {} -> {}",
+            winner.name(),
+            winner_points,
+            winner_new_points,
+            loser.name(),
+            loser_points,
+            loser_new_points
+        );
+
+        info!("{}", new_points);
+
+        msg = MessageBuilder::new()
+            .push("The winner is ")
+            .mention(&winner.user())
+            .push(new_points)
+            .build();
+
+        ctx.say(msg).await?;
+
+        mci.message
+            .reply(&ctx, "The command has finished executing.")
+            .await?;
+    }
+
+    Ok(())
+}
