@@ -1,8 +1,10 @@
 use std::fmt::Display;
 
-use poise::serenity_prelude::User;
-
 use super::*;
+use crate::db::Database;
+
+use poise::serenity_prelude::User;
+use sqlx::Error as SqlxError;
 
 pub struct Player {
     user: User,
@@ -24,14 +26,44 @@ impl Player {
         self.user.name.clone()
     }
 
-    pub fn add(&mut self, points: u16) -> u16 {
+    pub async fn add(&mut self, points: u16, db: &Database) -> Result<u16, SqlxError> {
         self.points += points;
-        self.points
+        self.update_rank(points, db).await?;
+
+        Ok(self.points)
     }
 
-    pub fn minus(&mut self, points: u16) -> u16 {
+    pub async fn minus(&mut self, points: u16, db: &Database) -> Result<u16, SqlxError> {
         self.points -= points;
-        self.points
+        self.update_rank(points, db).await?;
+
+        Ok(self.points)
+    }
+
+    async fn update_rank(&mut self, points: u16, db: &Database) -> Result<(), SqlxError> {
+        let new_rank = Rank::from(points);
+        if self.rank != new_rank {
+            return Ok(());
+        }
+
+        self.rank = new_rank;
+        db.update_rank(self).await?;
+        Ok(())
+    }
+
+    pub fn id(&self) -> f64 {
+        self.user().id.0 as f64
+    }
+
+    pub async fn mark_loss(&self, db: &Database) -> Result<(), SqlxError> {
+        db.mark_loss(self).await?;
+        Ok(())
+    }
+
+    pub async fn mark_win(&self, db: &Database) -> Result<(), SqlxError> {
+        db.mark_win(self).await?;
+
+        Ok(())
     }
 }
 

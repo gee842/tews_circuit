@@ -4,7 +4,8 @@ use std::{
     iter::repeat,
 };
 
-use super::errors::Error;
+use crate::errors::Error;
+use crate::player::Player;
 
 use async_recursion::async_recursion;
 use tracing::{info, warn};
@@ -18,7 +19,7 @@ use sqlx::{
 
 #[derive(Clone)]
 pub struct Database {
-    conn: SqlitePool,
+    pub conn: SqlitePool,
 }
 
 impl Database {
@@ -153,7 +154,55 @@ impl Database {
 }
 
 // Player related methods
+// TODO: This should probably be in the players module
 impl Database {
+    pub async fn update_points(&self, points: u16, user: String) -> Result<(), SqlxError> {
+        let sql = "UPDATE Players SET Points = ? WHERE UID = ?";
+        let _ = query(sql)
+            .bind(points)
+            .bind(user.clone())
+            .execute(&self.conn)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn match_finished(&self, p1: String, p2: String) -> Result<(), SqlxError> {
+        let sql = "UPDATE History SET Finished = 1 WHERE Challenger = ? OR Challenged = ?";
+        let _ = query(sql)
+            .bind(p1.clone())
+            .bind(p2.clone())
+            .execute(&self.conn)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn mark_loss(&self, player: &Player) -> Result<(), SqlxError> {
+        let sql = "UPDATE Players SET Loss = Loss + 1 WHERE UID = ?";
+        let _ = query(sql).bind(player.id()).execute(&self.conn).await?;
+
+        Ok(())
+    }
+
+    pub async fn update_rank(&self, player: &Player) -> Result<(), SqlxError> {
+        let sql = "UPDATE Players SET Rank = ? WHERE UID = ?";
+        let _ = query(sql)
+            .bind(player.rank.to_string())
+            .bind(player.id())
+            .execute(&self.conn)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn mark_win(&self, player: &Player) -> Result<(), SqlxError> {
+        let sql = "UPDATE Players SET Win = Win + 1 WHERE UID = ?";
+        let _ = query(sql).bind(player.id()).execute(&self.conn).await?;
+
+        Ok(())
+    }
+
     pub async fn points_data(&self, user_id: u64) -> Result<u16, SqlxError> {
         // SQL query for Players table where ID is equal to user_id
         let result = query("SELECT * FROM Players WHERE UID = ?;")

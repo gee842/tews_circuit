@@ -59,14 +59,14 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
     // When the match has finished get them to confirm who wins/loses.
     ongoing_match_menu(ctx, caller.clone(), other_player.clone()).await?;
 
-    let conn = ctx.data().database.clone();
+    let db = ctx.data().database.clone();
 
     while let Some(mci) = CollectComponentInteraction::new(&ctx)
         .channel_id(ctx.channel_id())
         .await
     {
         let winner_id: u64 = mci.data.custom_id.parse().unwrap();
-        let winner_points = conn.points_data(winner_id).await?;
+        let winner_points = db.points_data(winner_id).await?;
         let winner = ctx.http().get_user(winner_id).await?;
 
         let mut winner = Player::new(winner, winner_points).await;
@@ -77,20 +77,29 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
             caller.clone()
         };
 
-        let loser_points = conn.points_data(loser.id.0).await?;
+        let loser_points = db.points_data(loser.id.0).await?;
         let mut loser = Player::new(loser, loser_points).await;
 
         info!("Winner\n{}", winner);
         info!("Loser\n{}", loser);
 
-        let (winner_new_points, loser_new_points) = if winner.rank == loser.rank {
-            (winner.add(25), loser.minus(25))
+        // Calculate new point total
+        let (add, minus) = if winner.rank == loser.rank {
+            (25, 25)
         } else if winner.rank > loser.rank {
-            (winner.add(10), loser.minus(15))
+            (10, 15)
         } else {
             // Winner rank less than loser rank
-            (winner.add(25), loser.minus(30))
+            (25, 30)
         };
+
+        let winner_new_points = winner.add(add, &db).await?;
+        let loser_new_points = loser.minus(minus, &db).await?;
+
+        db.update_points(winner_new_points, winner.user().id.to_string())
+            .await?;
+        db.update_points(loser_new_points, loser.user().id.to_string())
+            .await?;
 
         let new_points = format!(
             "\nWinner: {}, {} -> {}\nLoser: {}, {} -> {}",
@@ -115,6 +124,14 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
         mci.message
             .reply(&ctx, "The command has finished executing.")
             .await?;
+
+        let winner_id = winner.user().id.to_string();
+        let loser_id = loser.user().id.to_string();
+
+        winner.mark_win(&db).await?;
+        loser.mark_loss(&db).await?;
+
+        db.match_finished(winner_id, loser_id).await?;
     }
 
     Ok(())

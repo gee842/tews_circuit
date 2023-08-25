@@ -1,5 +1,5 @@
-mod rank;
 mod player;
+mod rank;
 
-pub use rank::Rank;
 pub use player::Player;
+pub use rank::Rank;
