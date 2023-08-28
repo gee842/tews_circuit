@@ -221,14 +221,20 @@ impl Database {
 
         let sql = r#"
 SELECT * FROM 
-History WHERE Challenger = ? OR Challenged = ? AND Finished = 0
+History WHERE (Challenger = ? OR Challenged = ?) AND Finished = 0
 ORDER BY ABS(strftime("%s", "now") - strftime("%s", "Date"))"#;
 
-        let row = query(sql)
+        let row = if let Ok(row) = query(sql)
             .bind(caller_id)
             .bind(caller_id)
             .fetch_one(&self.conn)
-            .await?;
+            .await
+        {
+            row
+        } else {
+            warn!("No matches found for this user.");
+            return Err(SqlxError::RowNotFound);
+        };
 
         let mut other_id: String = row.get(1);
 

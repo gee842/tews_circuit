@@ -43,7 +43,14 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
     // The person who ran the `start_match` command.
     let caller = ctx.author();
 
-    let other_player = database.closest_matches(&caller.id.to_string()).await?;
+    let other_player = match database.closest_matches(&caller.id.to_string()).await {
+        Ok(other_player) => other_player,
+        Err(_) => {
+            ctx.say("You don't have any pending matches.").await?;
+            return Ok(());
+        }
+    };
+
     let other_player = http.get_user(other_player.parse().unwrap()).await?;
 
     let mut msg = MessageBuilder::new()
