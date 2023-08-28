@@ -34,9 +34,13 @@ impl Player {
     }
 
     pub async fn minus(&mut self, points: u16, db: &Database) -> Result<u16, SqlxError> {
-        self.points -= points;
-        self.update_rank(points, db).await?;
+        if self.points <= 750 {
+            self.points = 750;
+        } else {
+            self.points -= points;
+        }
 
+        self.update_rank(points, db).await?;
         Ok(self.points)
     }
 
