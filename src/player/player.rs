@@ -5,6 +5,7 @@ use crate::db::Database;
 
 use poise::serenity_prelude::User;
 use sqlx::Error as SqlxError;
+use tracing::info;
 
 pub struct Player {
     user: User,
@@ -28,7 +29,7 @@ impl Player {
 
     pub async fn add(&mut self, points: u16, db: &Database) -> Result<u16, SqlxError> {
         self.points += points;
-        self.update_rank(points, db).await?;
+        self.update_rank(self.points, db).await?;
 
         Ok(self.points)
     }
@@ -40,16 +41,18 @@ impl Player {
             self.points -= points;
         }
 
-        self.update_rank(points, db).await?;
+        self.update_rank(self.points, db).await?;
         Ok(self.points)
     }
 
     async fn update_rank(&mut self, points: u16, db: &Database) -> Result<(), SqlxError> {
         let new_rank = Rank::from(points);
-        if self.rank != new_rank {
+        if self.rank == new_rank {
+            info!("{}'s rank remains unchanged.", self.user.name);
             return Ok(());
         }
 
+        info!("{}'s rank remains changed.", self.user.name);
         self.rank = new_rank;
         db.update_rank(self).await?;
         Ok(())
@@ -66,7 +69,6 @@ impl Player {
 
     pub async fn mark_win(&self, db: &Database) -> Result<(), SqlxError> {
         db.mark_win(self).await?;
-
         Ok(())
     }
 }
