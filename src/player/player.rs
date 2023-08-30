@@ -55,8 +55,8 @@ impl Player {
         Ok(())
     }
 
-    pub fn id(&self) -> f64 {
-        self.user().id.0 as f64
+    pub fn id(&self) -> String {
+        self.user.id.0.to_string()
     }
 
     pub async fn mark_loss(&self, db: &Database) -> Result<(), SqlxError> {

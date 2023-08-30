@@ -78,7 +78,7 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
 
         let mut winner = Player::new(winner, winner_points).await;
 
-        let loser = if winner.user().id == caller.id {
+        let loser = if winner.id() == caller.id.0.to_string() {
             other_player.clone()
         } else {
             caller.clone()
@@ -103,10 +103,8 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
         let winner_new_points = winner.add(add, &db).await?;
         let loser_new_points = loser.minus(minus, &db).await?;
 
-        db.update_points(winner_new_points, winner.user().id.to_string())
-            .await?;
-        db.update_points(loser_new_points, loser.user().id.to_string())
-            .await?;
+        db.update_points(winner_new_points, winner.id()).await?;
+        db.update_points(loser_new_points, loser.id()).await?;
 
         let new_points = format!(
             "\nWinner: {}, {} -> {}\nLoser: {}, {} -> {}",
@@ -132,8 +130,8 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
             .reply(&ctx, "The command has finished executing.")
             .await?;
 
-        let winner_id = winner.user().id.to_string();
-        let loser_id = loser.user().id.to_string();
+        let winner_id = winner.id();
+        let loser_id = winner.id();
 
         winner.mark_win(&db).await?;
         loser.mark_loss(&db).await?;
