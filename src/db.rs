@@ -154,7 +154,6 @@ impl Database {
 }
 
 // Player related methods
-// TODO: This should probably be in the players module
 impl Database {
     pub async fn update_points(&self, points: u16, user: String) -> Result<(), SqlxError> {
         let sql = "UPDATE Players SET Points = ? WHERE UID = ?";

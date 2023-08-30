@@ -104,7 +104,7 @@ pub async fn challenge(
                 )
                 .await?;
 
-                let msg = format!("It is done. The challenge is on {}. A public event is created to help you keep track of the time of the challenge.", answer.content);
+                let msg = format!("It is done. The challenge is on {}.", answer.content);
                 ctx.say(msg).await?;
             }
         } else if reject {
