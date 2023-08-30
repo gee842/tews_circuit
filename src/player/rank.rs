@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-#[derive(PartialEq, PartialOrd)]
+#[derive(PartialEq, PartialOrd, Clone)]
 pub enum Rank {
     Unrated = 0,
     Gold = 1,
@@ -30,5 +30,18 @@ impl Display for Rank {
             Rank::Emerald => write!(f, "Emerald"),
             Rank::Diamond => write!(f, "Diamond"),
         }
+    }
+}
+
+impl Rank {
+    pub fn current_status(&self, new: &Self) -> String {
+        if self < new {
+            format!("Promotion: {self} -> {new}.")
+        } else if self > &new {
+            format!("Demotion: {self} -> {new}.")
+        } else {
+            "".to_string()
+        }
+        .to_string()
     }
 }

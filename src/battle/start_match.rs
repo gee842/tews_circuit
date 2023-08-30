@@ -100,28 +100,33 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
             (25, 30)
         };
 
+        let winner_ori_rank = winner.rank.clone();
+        let loser_ori_rank = loser.rank.clone();
+
         let winner_new_points = winner.add(add, &db).await?;
-        let loser_new_points = loser.minus(minus, &db).await?;
-
+        let winner_rank_status = winner_ori_rank.current_status(&winner.rank);
         db.update_points(winner_new_points, winner.id()).await?;
-        db.update_points(loser_new_points, loser.id()).await?;
 
-        let new_points = format!(
-            "\nWinner: {}, {} -> {}\nLoser: {}, {} -> {}",
-            winner.name(),
-            winner_points,
-            winner_new_points,
-            loser.name(),
-            loser_points,
-            loser_new_points
+        let resolution_msg = format!(
+            "Winner: {}, {winner_points} -> {winner_new_points}. {winner_rank_status}",
+            winner.name()
         );
 
-        info!("{}", new_points);
+        let loser_new_points = loser.minus(minus, &db).await?;
+        let loser_rank_status = loser_ori_rank.current_status(&loser.rank);
+        db.update_points(loser_new_points, loser.id()).await?;
+
+        let resolution_msg = format!(
+            "{resolution_msg}\nLoser: {}, {loser_points} -> {loser_new_points}. {loser_rank_status}",
+            loser.name(),
+        );
+
+        info!("{}", resolution_msg);
 
         msg = MessageBuilder::new()
             .push("The winner is ")
             .mention(&winner.user())
-            .push(new_points)
+            .push(resolution_msg)
             .build();
 
         ctx.say(msg).await?;
