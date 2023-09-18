@@ -22,6 +22,9 @@ type Context<'a> = poise::Context<'a, Data, Error>;
 
 #[poise::command(prefix_command)]
 pub async fn register(ctx: Context<'_>) -> Result<(), Error> {
+    let db = ctx.data().database.clone();
+    db.disqualify().await?;
+
     poise::builtins::register_application_commands_buttons(ctx).await?;
 
     Ok(())

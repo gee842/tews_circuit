@@ -38,6 +38,8 @@ async fn ongoing_match_menu(
 #[poise::command(slash_command)]
 pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
     let database = ctx.data().database.clone();
+    database.disqualify().await?;
+
     let http = ctx.http();
 
     // The person who ran the `start_match` command.

@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     fs::{self, OpenOptions},
     io::ErrorKind,
     iter::repeat,
@@ -214,9 +215,56 @@ impl Database {
         Ok(points)
     }
 
+    /// Processes all disqualifications. Is ran at the start of every function.
+    pub async fn disqualify(&self) -> Result<(), SqlxError> {
+        let mut sql =
+            "SELECT Challenger, Challenged FROM History WHERE Date < Date('now') AND Finished = 0;";
+        let unfinished_matches = query(sql).fetch_all(&self.conn).await?;
+
+        let mut users: Vec<(String, String)> = vec![];
+        users.extend(unfinished_matches.iter().map(|e| (e.get(0), e.get(1))));
+
+        if users.len() == 0 {
+            return Ok(());
+        }
+
+        for user in users {
+            let challenger = user.0.clone();
+            let challenged = user.1.clone();
+
+            sql = "UPDATE Players SET Points = Points - 10 WHERE UID = ?";
+            _ = query(sql)
+                .bind(challenger.clone())
+                .execute(&self.conn)
+                .await?;
+            _ = query(sql)
+                .bind(challenged.clone())
+                .execute(&self.conn)
+                .await?;
+
+            sql = "UPDATE History SET Finished = 1 WHERE Challenger = ? AND Challenged = ?";
+            _ = query(sql)
+                .bind(challenger.clone())
+                .bind(challenged.clone())
+                .execute(&self.conn)
+                .await?;
+
+            sql = "UPDATE Players SET Disqualifications = Disqualifications + 1 WHERE UID = ?";
+            _ = query(sql)
+                .bind(challenger.clone())
+                .execute(&self.conn)
+                .await?;
+            _ = query(sql)
+                .bind(challenged.clone())
+                .execute(&self.conn)
+                .await?;
+        }
+
+        Ok(())
+    }
+
     pub async fn closest_matches(&self, caller_id: &str) -> Result<String, SqlxError> {
-        // TODO: Add a check where if the date of the challenge is past
-        // current date, penalise the challenged user.
+        self.disqualify().await?;
 
         let sql = r#"
 SELECT * FROM 
@@ -256,7 +304,8 @@ ORDER BY ABS(strftime("%s", "now") - strftime("%s", "Date"))"#;
 
         let mut challenges = vec![];
         let msg = format!("=========== {} ===========", user);
-        info!(msg);
+        info!("{}", msg);
+
         for row in rows {
             let challenged: String = row.get(1);
             let time: String = row.get(2);
