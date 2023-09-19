@@ -1,5 +1,4 @@
 use std::{
-    collections::HashSet,
     fs::{self, OpenOptions},
     io::ErrorKind,
     iter::repeat,
@@ -11,7 +10,7 @@ use crate::player::Player;
 use async_recursion::async_recursion;
 use tracing::{info, warn};
 
-use chrono::NaiveDateTime;
+use chrono::{format::ParseErrorKind, NaiveDateTime};
 use sqlx::{
     query,
     sqlite::{SqlitePool, SqlitePoolOptions},
@@ -58,21 +57,22 @@ impl Database {
         &mut self,
         challenger: &str,
         challenged: &str,
-        date: &str,
+        original_date: &str,
         success: Option<bool>,
     ) -> Result<bool, SqlxError> {
-        let date = match NaiveDateTime::parse_from_str(date, "%e %b %Y %H:%M") {
+        info!("Date: {:?}", original_date);
+        let date = match NaiveDateTime::parse_from_str(original_date, "%e %b %Y %H:%M") {
             Ok(date) => {
-                // SQLITE doesn't have a DATE data type. But it does support
+                // SQLITE doesn't have a DATE type. But it does support
                 // dates as TEXT in ISO 8601 format.
                 info!("Date format accepted. Converting to ISO 8601");
                 let formatted_date = date.format("%Y-%m-%d %H:%M").to_string();
                 formatted_date
             }
-            Err(_) => {
-                return Err(SqlxError::Protocol(
-                    "Invalid date format. Please run the command again.".to_string(),
-                ))
+            Err(e) => {
+                let err_msg = e.to_string();
+                warn!("{}", err_msg);
+                return Err(SqlxError::Protocol(err_msg));
             }
         };
 
@@ -96,7 +96,7 @@ impl Database {
                     self.find_missing_player(challenger, challenged).await?;
 
                     info!("New player(s) registered. Re-running function.");
-                    self.add_new_challenge(challenger, challenged, &date, None)
+                    self.add_new_challenge(challenger, challenged, &original_date, None)
                         .await?;
                 }
                 Error::Unknown(msg) => {

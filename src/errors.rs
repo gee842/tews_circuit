@@ -23,7 +23,6 @@ impl Error {
         let code = error.code().unwrap();
 
         if code == "787" {
-            warn!("Error::ForeignKeyConstraintNotMet");
             return Error::ForeignKeyConstraintNotMet;
         }
 

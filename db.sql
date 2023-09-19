@@ -29,7 +29,6 @@ CREATE TABLE IF NOT EXISTS "History" (
 	"Challenged"	TEXT,
 	"Date"	TEXT,
 	"Finished"	INTEGER,
-	"Winner"	INTEGER,
 	FOREIGN KEY("Challenger") REFERENCES "Players"("UID")
 	FOREIGN KEY("Challenged") REFERENCES "Players"("UID")
 );
