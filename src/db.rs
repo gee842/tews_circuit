@@ -10,7 +10,7 @@ use crate::player::Player;
 use async_recursion::async_recursion;
 use tracing::{info, warn};
 
-use chrono::{format::ParseErrorKind, NaiveDateTime};
+use chrono::NaiveDateTime;
 use sqlx::{
     query,
     sqlite::{SqlitePool, SqlitePoolOptions},
@@ -219,14 +219,18 @@ impl Database {
     pub async fn disqualify(&self) -> Result<(), SqlxError> {
         let mut sql =
             "SELECT Challenger, Challenged FROM History WHERE Date < Date('now') AND Finished = 0;";
+
         let unfinished_matches = query(sql).fetch_all(&self.conn).await?;
 
         let mut users: Vec<(String, String)> = vec![];
         users.extend(unfinished_matches.iter().map(|e| (e.get(0), e.get(1))));
 
         if users.len() == 0 {
+            info!("No matches are past due.");
             return Ok(());
         }
+
+        info!("Processing matches that are past due.");
 
         for user in users {
             let challenger = user.0.clone();
@@ -237,6 +241,7 @@ impl Database {
                 .bind(challenger.clone())
                 .execute(&self.conn)
                 .await?;
+
             _ = query(sql)
                 .bind(challenged.clone())
                 .execute(&self.conn)
@@ -254,6 +259,7 @@ impl Database {
                 .bind(challenger.clone())
                 .execute(&self.conn)
                 .await?;
+
             _ = query(sql)
                 .bind(challenged.clone())
                 .execute(&self.conn)
@@ -295,12 +301,17 @@ ORDER BY ABS(strftime("%s", "now") - strftime("%s", "Date"))"#;
 
     /// `user` - The specified user's pending matches
     pub async fn player_matches(&self, user: &str) -> Result<Vec<(String, String)>, SqlxError> {
-        let rows =
-            query("SELECT * FROM History WHERE Challenger = ? OR Challenged = ? AND Finished = 0")
-                .bind(user)
-                .bind(user)
-                .fetch_all(&self.conn)
-                .await?;
+        let sql = "SELECT * FROM History WHERE 
+            (Challenger = ? OR Challenged = ?)
+            AND Finished = 0
+            AND Date > Date('now')
+            ";
+
+        let rows = query(sql)
+            .bind(user)
+            .bind(user)
+            .fetch_all(&self.conn)
+            .await?;
 
         let mut challenges = vec![];
         let msg = format!("=========== {} ===========", user);
@@ -316,7 +327,7 @@ ORDER BY ABS(strftime("%s", "now") - strftime("%s", "Date"))"#;
         }
 
         let msg: String = repeat("=").take(msg.len()).collect();
-        info!(msg);
+        info!("{}", msg);
         Ok(challenges)
     }
 }

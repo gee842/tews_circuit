@@ -7,7 +7,7 @@ pub async fn pending_matches(ctx: Context<'_>) -> Result<(), Error> {
 
     let caller = ctx.author().id;
 
-    // Retrieves the caller's challenge list.
+    // Retrieves the caller's pending matches.
     let matches = connection.player_matches(&caller.to_string()).await?;
 
     let dm = caller.create_dm_channel(&ctx).await?;
