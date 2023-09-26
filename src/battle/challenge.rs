@@ -48,9 +48,6 @@ pub async fn challenge(
     ctx: Context<'_>,
     #[description = "User to challenge"] user_challenged: User,
 ) -> Result<(), Error> {
-    let db = ctx.data().database.clone();
-    db.disqualify().await?;
-
     ctx.defer().await?;
 
     let accept_uuid = ctx.id();

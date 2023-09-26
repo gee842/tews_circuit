@@ -6,7 +6,7 @@ mod constants;
 mod db;
 mod errors;
 
-use std::{collections::HashSet, error::Error as StdError};
+use std::{collections::HashSet, error::Error as StdError, time::Duration};
 
 use battle::{challenge::*, start_match::*};
 use history::pending_matches::pending_matches;
@@ -15,6 +15,7 @@ use constants::*;
 use db::Database;
 
 use poise::serenity_prelude::{GatewayIntents, UserId};
+use tokio::time::sleep;
 use tracing::{info, warn};
 
 type Error = Box<dyn StdError + Send + Sync>;
@@ -22,9 +23,6 @@ type Context<'a> = poise::Context<'a, Data, Error>;
 
 #[poise::command(prefix_command)]
 pub async fn register(ctx: Context<'_>) -> Result<(), Error> {
-    let db = ctx.data().database.clone();
-    db.disqualify().await?;
-
     poise::builtins::register_application_commands_buttons(ctx).await?;
 
     Ok(())
@@ -34,6 +32,13 @@ pub async fn register(ctx: Context<'_>) -> Result<(), Error> {
 // The connection to the database can be placed in here.
 pub struct Data {
     database: Database,
+}
+
+async fn routine(db: Database) {
+    loop {
+        sleep(Duration::from_secs(60 * 5)).await;
+        let _ = db.disqualify().await;
+    }
 }
 
 #[tokio::main]
@@ -46,7 +51,6 @@ async fn main() {
     let database = match Database::new().await {
         Ok(database) => database,
         Err(e) => {
-            info!("{}", e.to_string());
             info!("{}", e.to_string());
             return;
         }
@@ -80,6 +84,7 @@ async fn main() {
             info!("Tews is online.");
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
+                tokio::spawn(routine(database.clone()));
                 Ok(Data { database })
             })
         });

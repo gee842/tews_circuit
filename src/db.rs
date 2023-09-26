@@ -270,8 +270,6 @@ impl Database {
     }
 
     pub async fn closest_matches(&self, caller_id: &str) -> Result<String, SqlxError> {
-        self.disqualify().await?;
-
         let sql = r#"
 SELECT * FROM 
 History WHERE (Challenger = ? OR Challenged = ?) AND Finished = 0

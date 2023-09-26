@@ -3,7 +3,6 @@ use crate::*;
 #[poise::command(slash_command)]
 pub async fn pending_matches(ctx: Context<'_>) -> Result<(), Error> {
     let connection = ctx.data().database.clone();
-    connection.disqualify().await?;
 
     let caller = ctx.author().id;
 
