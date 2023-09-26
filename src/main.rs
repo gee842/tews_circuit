@@ -35,6 +35,7 @@ pub struct Data {
 }
 
 async fn routine(db: Database) {
+    info!("Separate thread for tasks has been spawned.");
     loop {
         sleep(Duration::from_secs(60 * 5)).await;
         let _ = db.disqualify().await;
