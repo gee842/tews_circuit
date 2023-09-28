@@ -13,4 +13,4 @@
 - Run the bot with  `RUST_LOG=none,tews_circuit=info cargo r` to view logging output. Running with just `cargo r` will result in *no* output aside from errors and `println`.
 
 # TODO
-- [ ] Groups/Ranks. A maximum of 8 people can hold a rank. So 8 Golds, 8 Emeralds, etc.
+- [ ] Win/Loss streak implementation.
