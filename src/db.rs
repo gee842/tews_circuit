@@ -46,6 +46,26 @@ impl Database {
 
         return Ok(Self { conn });
     }
+
+    pub async fn streak_info(&self, player: &Player) -> Result<(bool, u8), SqlxError> {
+        let id = player.id();
+        let sql = "SELECT WinStreak, LossStreak FROM Players WHERE UID = ?";
+        let results = query(sql).bind(id).fetch_one(&self.conn).await?;
+        let win_streak = results.get(0);
+        let lose_streak = results.get(1);
+
+        // TODO: Figure out a way to convey the three states
+        // 1. No streak
+        // 2. Lose streak
+        // 3. Win streak
+        if win_streak == 0 && lose_streak == 0 {
+            return Ok((false, 0));
+        } else if win_streak == 0 {
+            return Ok((false, lose_streak));
+        } else {
+            return Ok((true, win_streak));
+        }
+    }
 }
 
 // Implementations of challenge functions
@@ -179,7 +199,15 @@ impl Database {
     }
 
     pub async fn mark_loss(&self, player: &Player) -> Result<(), SqlxError> {
-        let sql = "UPDATE Players SET Loss = Loss + 1 WHERE UID = ?";
+        let sql = "
+            UPDATE Players 
+            SET 
+                Lose = Lose + 1 
+                LoseStreak = LoseStreak + 1
+                WinStreak = 0
+            WHERE 
+                UID = ?
+            ";
         let _ = query(sql).bind(player.id()).execute(&self.conn).await?;
 
         Ok(())
@@ -197,7 +225,15 @@ impl Database {
     }
 
     pub async fn mark_win(&self, player: &Player) -> Result<(), SqlxError> {
-        let sql = "UPDATE Players SET Win = Win + 1 WHERE UID = ?";
+        let sql = "
+            UPDATE Players 
+            SET 
+                Win = Win + 1 
+                WinStreak = WinStreak + 1
+                LoseStreak = 0
+            WHERE 
+                UID = ?
+            ";
         let _ = query(sql).bind(player.id()).execute(&self.conn).await?;
 
         Ok(())

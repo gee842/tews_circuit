@@ -14,3 +14,5 @@
 
 # TODO
 - [ ] Win/Loss streak implementation.
+
+Additional note: Win streak starts with 2nd and 3rd win in a row. As u said if they win 2nd time in the row they will get +5 points more 

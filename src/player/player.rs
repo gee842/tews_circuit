@@ -34,6 +34,15 @@ impl Player {
         Ok(self.points)
     }
 
+    pub async fn streak_info(&mut self, db: &Database) -> Result<(bool, u8), SqlxError> {
+        let (streak, times) = db.streak_info(self).await?;
+        if streak {
+            Ok((true, times))
+        } else {
+            Ok((false, times))
+        }
+    }
+
     pub async fn minus(&mut self, points: u16, db: &Database) -> Result<u16, SqlxError> {
         if self.points <= 750 {
             self.points = 750;
