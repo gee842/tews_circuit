@@ -7,6 +7,11 @@ use poise::serenity_prelude::User;
 use sqlx::Error as SqlxError;
 use tracing::info;
 
+pub enum Streak {
+    Amount(u16),
+    Neither,
+}
+
 pub struct Player {
     user: User,
     pub rank: rank::Rank,
@@ -27,27 +32,32 @@ impl Player {
         self.user.name.clone()
     }
 
+    pub async fn streak_bonus(&mut self, db: &Database) -> Result<u16, SqlxError> {
+        let streak = match db.streak_info(self).await? {
+            Streak::Amount(amt) => amt,
+            Streak::Neither => return Ok(0),
+        };
+
+        let streak = if streak == 2 { 5 } else { 10 };
+
+        Ok(streak)
+    }
+
     pub async fn add(&mut self, points: u16, db: &Database) -> Result<u16, SqlxError> {
-        self.points += points;
+        let streak = self.streak_bonus(db).await?;
+        self.points += points + streak;
+
         self.update_rank(self.points, db).await?;
 
         Ok(self.points)
-    }
-
-    pub async fn streak_info(&mut self, db: &Database) -> Result<(bool, u8), SqlxError> {
-        let (streak, times) = db.streak_info(self).await?;
-        if streak {
-            Ok((true, times))
-        } else {
-            Ok((false, times))
-        }
     }
 
     pub async fn minus(&mut self, points: u16, db: &Database) -> Result<u16, SqlxError> {
         if self.points <= 750 {
             self.points = 750;
         } else {
-            self.points -= points;
+            let streak = self.streak_bonus(db).await?;
+            self.points -= points + streak;
         }
 
         self.update_rank(self.points, db).await?;
