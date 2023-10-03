@@ -69,7 +69,7 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
 
     let db = ctx.data().database.clone();
 
-    while let Some(mci) = CollectComponentInteraction::new(&ctx)
+    while let Some(mci) = CollectComponentInteraction::new(ctx)
         .channel_id(ctx.channel_id())
         .await
     {
