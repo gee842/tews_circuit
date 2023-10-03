@@ -15,7 +15,7 @@ pub enum Error {
 impl Error {
     pub fn kind(error: SqlxError) -> Error {
         let error = error.as_database_error();
-        if let None = error {
+        if error.is_none() {
             return Error::None;
         }
 

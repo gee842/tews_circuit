@@ -37,7 +37,7 @@ impl Rank {
     pub fn current_status(&self, new: &Self) -> String {
         if self < new {
             format!("Promotion: {self} -> {new}.")
-        } else if self > &new {
+        } else if self > new {
             format!("Demotion: {self} -> {new}.")
         } else {
             "".to_string()

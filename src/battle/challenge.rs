@@ -53,7 +53,7 @@ pub async fn challenge(
     let accept_uuid = ctx.id();
     let reject_uuid = accept_uuid + 1;
     let caller_id = ctx.author().id;
-    if &caller_id == &user_challenged.id {
+    if caller_id == user_challenged.id {
         ctx.say("You can't challenge yourself.").await?;
         return Ok(());
     };
@@ -61,7 +61,7 @@ pub async fn challenge(
     create_challenge_menu(ctx, accept_uuid, reject_uuid, &user_challenged).await?;
     let user_challenged_id = user_challenged.id;
 
-    while let Some(mci) = CollectComponentInteraction::new(&ctx)
+    while let Some(mci) = CollectComponentInteraction::new(ctx)
         .author_id(user_challenged_id)
         .channel_id(ctx.channel_id())
         .timeout(Duration::from_secs(60 * 5))
