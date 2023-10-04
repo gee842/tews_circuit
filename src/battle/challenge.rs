@@ -88,7 +88,7 @@ pub async fn challenge(
             Challenge accepted! The challenged user will need to write the date and time of the match. Accepted date formats are as follows:
                 - 8 Jul 2021 15:00\n- 9 Apr 2023 20:00\n- 1 Jan 2024 18:30\n
 
-            Understand that you will both be penalised if you miss this match.
+Understand that you will both be penalised if you miss this match.
                 ";
 
             channel.say(&ctx, msg).await?;

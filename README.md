@@ -11,8 +11,3 @@
     - `ctx.send()`
 - `SqlxError::Protocol` is used when returning an Sqlx related error that doesn't fit into a particular error enum.
 - Run the bot with  `RUST_LOG=none,tews_circuit=info cargo r` to view logging output. Running with just `cargo r` will result in *no* output aside from errors and `println`.
-
-# TODO
-- [ ] Win/Loss streak implementation.
-
-Additional note: Win streak starts with 2nd and 3rd win in a row. As u said if they win 2nd time in the row they will get +5 points more 

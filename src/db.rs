@@ -3,8 +3,8 @@ use std::{
     io::ErrorKind,
 };
 
-use crate::{errors::Error, player::Streak};
 use crate::player::Player;
+use crate::{errors::Error, player::Streak};
 
 use async_recursion::async_recursion;
 use tracing::{info, warn};
@@ -40,7 +40,7 @@ impl Database {
 
         let db_path = "sqlite://database.db";
         let conn = SqlitePoolOptions::new().connect(db_path).await?;
-        let db_creation_query = fs::read_to_string("./db.sql")?;
+        let db_creation_query = fs::read_to_string("./sql/creation.sql")?;
         query(db_creation_query.as_str()).execute(&conn).await?;
 
         Ok(Self { conn })
@@ -61,7 +61,7 @@ impl Database {
         } else {
             Ok(Streak::Amount(amount))
         }
-}
+    }
 }
 
 // Implementations of challenge functions
@@ -97,12 +97,11 @@ impl Database {
             return Ok(succeeded);
         }
 
-        if let Err(e) = query("INSERT INTO History VALUES (?, ?, ?, ?, ?);")
+        if let Err(e) = query("INSERT INTO History VALUES (?, ?, ?, ?);")
             .bind(challenger)
             .bind(challenged)
             .bind(date.clone())
             .bind(0)
-            .bind("N/A")
             .execute(&self.conn)
             .await
         {
@@ -198,13 +197,13 @@ impl Database {
         let sql = "
             UPDATE Players 
             SET 
-                Lose = Lose + 1 
-                LoseStreak = LoseStreak + 1
+                Loss = Loss + 1 ,
+                LoseStreak = LoseStreak + 1,
                 WinStreak = 0
             WHERE 
-                UID = ?
-            ";
-        let _ = query(sql).bind(player.id()).execute(&self.conn).await?;
+                UID = ?;";
+
+        query(sql).bind(player.id()).execute(&self.conn).await?;
 
         Ok(())
     }
@@ -222,15 +221,15 @@ impl Database {
 
     pub async fn mark_win(&self, player: &Player) -> Result<(), SqlxError> {
         let sql = "
-            UPDATE Players 
-            SET 
-                Win = Win + 1 
-                WinStreak = WinStreak + 1
+            UPDATE Players
+            SET
+                Win = Win + 1,
+                WinStreak = WinStreak + 1,
                 LoseStreak = 0
-            WHERE 
-                UID = ?
-            ";
-        let _ = query(sql).bind(player.id()).execute(&self.conn).await?;
+            WHERE
+                UID = ?;";
+
+        query(sql).bind(player.id()).execute(&self.conn).await?;
 
         Ok(())
     }
