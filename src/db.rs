@@ -4,10 +4,8 @@ use std::{
     iter::repeat,
 };
 
-<<<<<<< HEAD
-use crate::errors::Error;
-=======
->>>>>>> ea20e14 (feat(streak): Win/Loss streaks now apply)
+use crate::player::Player;
+use crate::{errors::Error, player::Streak};
 use crate::player::Player;
 use crate::{errors::Error, player::Streak};
 
@@ -50,8 +48,6 @@ impl Database {
 
         return Ok(Self { conn });
     }
-<<<<<<< HEAD
-=======
 
     pub async fn streak_info(&self, player: &Player) -> Result<Streak, SqlxError> {
         let id = player.id();
@@ -69,7 +65,6 @@ impl Database {
             Ok(Streak::Amount(amount))
         }
     }
->>>>>>> ea20e14 (feat(streak): Win/Loss streaks now apply)
 }
 
 // Implementations of challenge functions
@@ -202,10 +197,6 @@ impl Database {
     }
 
     pub async fn mark_loss(&self, player: &Player) -> Result<(), SqlxError> {
-<<<<<<< HEAD
-        let sql = "UPDATE Players SET Loss = Loss + 1 WHERE UID = ?";
-        let _ = query(sql).bind(player.id()).execute(&self.conn).await?;
-=======
         let sql = "
             UPDATE Players 
             SET 
@@ -216,7 +207,6 @@ impl Database {
                 UID = ?;";
 
         query(sql).bind(player.id()).execute(&self.conn).await?;
->>>>>>> ea20e14 (feat(streak): Win/Loss streaks now apply)
 
         Ok(())
     }
@@ -233,10 +223,6 @@ impl Database {
     }
 
     pub async fn mark_win(&self, player: &Player) -> Result<(), SqlxError> {
-<<<<<<< HEAD
-        let sql = "UPDATE Players SET Win = Win + 1 WHERE UID = ?";
-        let _ = query(sql).bind(player.id()).execute(&self.conn).await?;
-=======
         let sql = "
             UPDATE Players
             SET
@@ -247,7 +233,6 @@ impl Database {
                 UID = ?;";
 
         query(sql).bind(player.id()).execute(&self.conn).await?;
->>>>>>> ea20e14 (feat(streak): Win/Loss streaks now apply)
 
         Ok(())
     }
