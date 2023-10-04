@@ -4,8 +4,12 @@ use std::{
     iter::repeat,
 };
 
+<<<<<<< HEAD
 use crate::errors::Error;
+=======
+>>>>>>> ea20e14 (feat(streak): Win/Loss streaks now apply)
 use crate::player::Player;
+use crate::{errors::Error, player::Streak};
 
 use async_recursion::async_recursion;
 use tracing::{info, warn};
@@ -41,11 +45,31 @@ impl Database {
 
         let db_path = "sqlite://database.db";
         let conn = SqlitePoolOptions::new().connect(db_path).await?;
-        let db_creation_query = fs::read_to_string("./db.sql")?;
+        let db_creation_query = fs::read_to_string("./sql/creation.sql")?;
         query(db_creation_query.as_str()).execute(&conn).await?;
 
         return Ok(Self { conn });
     }
+<<<<<<< HEAD
+=======
+
+    pub async fn streak_info(&self, player: &Player) -> Result<Streak, SqlxError> {
+        let id = player.id();
+
+        let sql = "SELECT WinStreak, LoseStreak FROM Players WHERE UID = ?";
+        let results = query(sql).bind(id).fetch_one(&self.conn).await?;
+
+        let win_streak = results.get(0);
+        let lose_streak = results.get(1);
+        let amount = std::cmp::max(win_streak, lose_streak);
+
+        if win_streak == 0 && lose_streak == 0 {
+            Ok(Streak::Neither)
+        } else {
+            Ok(Streak::Amount(amount))
+        }
+    }
+>>>>>>> ea20e14 (feat(streak): Win/Loss streaks now apply)
 }
 
 // Implementations of challenge functions
@@ -81,12 +105,11 @@ impl Database {
             return Ok(succeeded);
         }
 
-        if let Err(e) = query("INSERT INTO History VALUES (?, ?, ?, ?, ?);")
+        if let Err(e) = query("INSERT INTO History VALUES (?, ?, ?, ?);")
             .bind(challenger)
             .bind(challenged)
             .bind(date.clone())
             .bind(0)
-            .bind("N/A")
             .execute(&self.conn)
             .await
         {
@@ -179,8 +202,21 @@ impl Database {
     }
 
     pub async fn mark_loss(&self, player: &Player) -> Result<(), SqlxError> {
+<<<<<<< HEAD
         let sql = "UPDATE Players SET Loss = Loss + 1 WHERE UID = ?";
         let _ = query(sql).bind(player.id()).execute(&self.conn).await?;
+=======
+        let sql = "
+            UPDATE Players 
+            SET 
+                Loss = Loss + 1 ,
+                LoseStreak = LoseStreak + 1,
+                WinStreak = 0
+            WHERE 
+                UID = ?;";
+
+        query(sql).bind(player.id()).execute(&self.conn).await?;
+>>>>>>> ea20e14 (feat(streak): Win/Loss streaks now apply)
 
         Ok(())
     }
@@ -197,8 +233,21 @@ impl Database {
     }
 
     pub async fn mark_win(&self, player: &Player) -> Result<(), SqlxError> {
+<<<<<<< HEAD
         let sql = "UPDATE Players SET Win = Win + 1 WHERE UID = ?";
         let _ = query(sql).bind(player.id()).execute(&self.conn).await?;
+=======
+        let sql = "
+            UPDATE Players
+            SET
+                Win = Win + 1,
+                WinStreak = WinStreak + 1,
+                LoseStreak = 0
+            WHERE
+                UID = ?;";
+
+        query(sql).bind(player.id()).execute(&self.conn).await?;
+>>>>>>> ea20e14 (feat(streak): Win/Loss streaks now apply)
 
         Ok(())
     }

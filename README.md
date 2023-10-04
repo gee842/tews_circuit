@@ -11,6 +11,3 @@
     - `ctx.send()`
 - `SqlxError::Protocol` is used when returning an Sqlx related error that doesn't fit into a particular error enum.
 - Run the bot with  `RUST_LOG=none,tews_circuit=info cargo r` to view logging output. Running with just `cargo r` will result in *no* output aside from errors and `println`.
-
-# TODO
-- [ ] Win/Loss streak implementation.
