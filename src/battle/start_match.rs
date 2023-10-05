@@ -44,7 +44,7 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
     // The person who ran the `start_match` command.
     let caller = ctx.author();
 
-    let other_player = match database.closest_matches(&caller.id.to_string()).await {
+    let (other_player, date) = match database.closest_matches(&caller.id.to_string()).await {
         Ok(other_player) => other_player,
         Err(_) => {
             ctx.say("You don't have any pending matches.").await?;
@@ -108,7 +108,7 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
         let winner_rank_status = winner_ori_rank.current_status(&winner.rank);
         db.update_points(winner_new_points, winner.id()).await?;
 
-        let resolution_msg = format!(
+        let winner_msg = format!(
             "Winner: {}, {winner_points} -> {winner_new_points}. {winner_rank_status}",
             winner.name()
         );
@@ -117,17 +117,19 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
         let loser_rank_status = loser_ori_rank.current_status(&loser.rank);
         db.update_points(loser_new_points, loser.id()).await?;
 
-        let resolution_msg = format!(
-            "{resolution_msg}\nLoser: {}, {loser_points} -> {loser_new_points}. {loser_rank_status}",
+        let loser_msg = format!(
+            "Loser: {}, {loser_points} -> {loser_new_points}. {loser_rank_status}",
             loser.name(),
         );
 
-        info!("{}", resolution_msg);
+        let final_msg =format!("\n{}\n{}", winner_msg, loser_msg);
+
+        info!("{}", final_msg);
 
         msg = MessageBuilder::new()
             .push("The winner is ")
             .mention(&winner.user())
-            .push(resolution_msg)
+            .push(final_msg)
             .build();
 
         ctx.say(msg).await?;
@@ -137,12 +139,12 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
             .await?;
 
         let winner_id = winner.id();
-        let loser_id = winner.id();
+        let loser_id = loser.id();
 
         winner.mark_win(&db).await?;
         loser.mark_loss(&db).await?;
 
-        db.match_finished(winner_id, loser_id).await?;
+        db.match_finished(&winner_id, &loser_id, &date).await?;
     }
 
     Ok(())

@@ -182,13 +182,37 @@ impl Database {
         Ok(())
     }
 
-    pub async fn match_finished(&self, p1: String, p2: String) -> Result<(), SqlxError> {
-        let sql = "UPDATE History SET Finished = 1 WHERE Challenger = ? OR Challenged = ?";
-        let _ = query(sql)
-            .bind(p1.clone())
-            .bind(p2.clone())
-            .execute(&self.conn)
-            .await?;
+    pub async fn match_finished(&self, p1: &str, p2: &str, date: &str) -> Result<(), SqlxError> {
+        let mut p1 = p1;
+        let mut p2 = p2;
+
+        loop {
+            let mut sql = "SELECT Challenger, Challenged FROM History WHERE Challenger = ? AND Challenged = ? AND Date = ?";
+            let entries = query(sql)
+                .bind(p1)
+                .bind(p2)
+                .bind(date)
+                .fetch_all(&self.conn)
+                .await?;
+
+            if entries.is_empty() {
+                let p1_old = p1;
+                p1 = p2;
+                p2 = p1_old;
+
+                continue;
+            }
+
+            sql = "UPDATE History SET Finished = 1 WHERE Challenger = ? AND Challenged = ? AND Date = ?;";
+            query(sql)
+                .bind(p1.clone())
+                .bind(p2.clone())
+                .bind(date.clone())
+                .execute(&self.conn)
+                .await?;
+
+            break;
+        }
 
         Ok(())
     }
@@ -300,7 +324,7 @@ impl Database {
         Ok(())
     }
 
-    pub async fn closest_matches(&self, caller_id: &str) -> Result<String, SqlxError> {
+    pub async fn closest_matches(&self, caller_id: &str) -> Result<(String, String), SqlxError> {
         let sql = r#"
 SELECT * FROM 
 History WHERE (Challenger = ? OR Challenged = ?) AND Finished = 0
@@ -319,13 +343,14 @@ ORDER BY ABS(strftime("%s", "now") - strftime("%s", "Date"))"#;
         };
 
         let mut other_id: String = row.get(1);
+        let date: String = row.get(2);
 
         // Gets the id of the other user.
         if caller_id == other_id {
             other_id = row.get(0);
         }
 
-        Ok(other_id)
+        Ok((other_id, date))
     }
 
     /// `user` - The specified user's pending matches
