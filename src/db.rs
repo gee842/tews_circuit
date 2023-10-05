@@ -1,11 +1,8 @@
 use std::{
     fs::{self, OpenOptions},
     io::ErrorKind,
-    iter::repeat,
 };
 
-use crate::player::Player;
-use crate::{errors::Error, player::Streak};
 use crate::player::Player;
 use crate::{errors::Error, player::Streak};
 
@@ -46,7 +43,7 @@ impl Database {
         let db_creation_query = fs::read_to_string("./sql/creation.sql")?;
         query(db_creation_query.as_str()).execute(&conn).await?;
 
-        return Ok(Self { conn });
+        Ok(Self { conn })
     }
 
     pub async fn streak_info(&self, player: &Player) -> Result<Streak, SqlxError> {
@@ -114,7 +111,7 @@ impl Database {
                     self.find_missing_player(challenger, challenged).await?;
 
                     info!("New player(s) registered. Re-running function.");
-                    self.add_new_challenge(challenger, challenged, &original_date, None)
+                    self.add_new_challenge(challenger, challenged, original_date, None)
                         .await?;
                 }
                 Error::Unknown(msg) => {
@@ -139,11 +136,11 @@ impl Database {
         challenger: &str,
         challenged: &str,
     ) -> Result<(), SqlxError> {
-        if let Ok(_) = self.add_new_player(challenger).await {
+        if self.add_new_player(challenger).await.is_ok() {
             info!("The challenger is missing. Added successfully.");
         }
 
-        if let Ok(_) = self.add_new_player(challenged).await {
+        if self.add_new_player(challenged).await.is_ok() {
             info!("The challenged user missing. Added successfully.");
         }
 
@@ -259,7 +256,7 @@ impl Database {
         let mut users: Vec<(String, String)> = vec![];
         users.extend(unfinished_matches.iter().map(|e| (e.get(0), e.get(1))));
 
-        if users.len() == 0 {
+        if users.is_empty() {
             info!("No matches are past due.");
             return Ok(());
         }
@@ -358,7 +355,7 @@ ORDER BY ABS(strftime("%s", "now") - strftime("%s", "Date"))"#;
             challenges.push((challenged, time));
         }
 
-        let msg: String = repeat("=").take(msg.len()).collect();
+        let msg: String = "=".repeat(msg.len());
         info!("{}", msg);
         Ok(challenges)
     }
