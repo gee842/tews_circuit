@@ -43,6 +43,9 @@ impl Player {
         Ok(streak)
     }
 
+    // OK OK OK OK
+    // OK OK OK OK
+    // OK OK OK OK
     pub async fn add(&mut self, points: u16, db: &Database) -> Result<u16, SqlxError> {
         let streak = self.streak_bonus(db).await?;
         self.points += points + streak;
@@ -67,13 +70,12 @@ impl Player {
     async fn update_rank(&mut self, points: u16, db: &Database) -> Result<(), SqlxError> {
         let new_rank = Rank::from(points);
         if self.rank == new_rank {
-            info!("{}'s rank remains unchanged.", self.user.name);
             return Ok(());
         }
 
-        info!("{}'s rank remains changed.", self.user.name);
         self.rank = new_rank;
         db.update_rank(self).await?;
+
         Ok(())
     }
 

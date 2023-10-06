@@ -171,6 +171,10 @@ impl Database {
 
 // Player related methods
 impl Database {
+    // OK OK OK OK
+    // OK OK OK OK
+    // OK OK OK OK
+    // OK OK OK OK
     pub async fn update_points(&self, points: u16, user: String) -> Result<(), SqlxError> {
         let sql = "UPDATE Players SET Points = ? WHERE UID = ?";
         let _ = query(sql)
@@ -182,6 +186,10 @@ impl Database {
         Ok(())
     }
 
+    // OK OK OK OK
+    // OK OK OK OK
+    // OK OK OK OK
+    // OK OK OK OK
     pub async fn match_finished(&self, p1: &str, p2: &str, date: &str) -> Result<(), SqlxError> {
         let mut p1 = p1;
         let mut p2 = p2;
@@ -258,6 +266,9 @@ impl Database {
         Ok(())
     }
 
+    // OK OK OK OK
+    // OK OK OK OK
+    // OK OK OK OK
     pub async fn points_data(&self, user_id: u64) -> Result<u16, SqlxError> {
         // SQL query for Players table where ID is equal to user_id
         let result = query("SELECT * FROM Players WHERE UID = ?;")

@@ -1,6 +1,8 @@
-use poise::serenity_prelude::User;
+use std::sync::Arc;
+
 use poise::serenity_prelude::{ButtonStyle, CreateActionRow, CreateButton};
 use poise::serenity_prelude::{CacheHttp, CollectComponentInteraction, MessageBuilder};
+use poise::serenity_prelude::{MessageComponentInteraction, User};
 
 use crate::*;
 use player::Player;
@@ -37,14 +39,12 @@ async fn ongoing_match_menu(
 
 #[poise::command(slash_command)]
 pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
-    let database = ctx.data().database.clone();
-
-    let http = ctx.http();
+    let db = ctx.data().database.clone();
 
     // The person who ran the `start_match` command.
     let caller = ctx.author();
 
-    let (other_player, date) = match database.closest_matches(&caller.id.to_string()).await {
+    let (other_player, date) = match db.closest_matches(&caller.id.to_string()).await {
         Ok(other_player) => other_player,
         Err(_) => {
             ctx.say("You don't have any pending matches.").await?;
@@ -52,6 +52,7 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
         }
     };
 
+    let http = ctx.http();
     let other_player = http.get_user(other_player.parse().unwrap()).await?;
 
     let mut msg = MessageBuilder::new()
@@ -67,12 +68,12 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
     // When the match has finished get them to confirm who wins/loses.
     ongoing_match_menu(ctx, caller.clone(), other_player.clone()).await?;
 
-    let db = ctx.data().database.clone();
-
     while let Some(mci) = CollectComponentInteraction::new(ctx)
         .channel_id(ctx.channel_id())
         .await
     {
+        mci.defer(ctx).await?;
+
         let winner_id: u64 = mci.data.custom_id.parse().unwrap();
         let winner_points = db.points_data(winner_id).await?;
         let winner = ctx.http().get_user(winner_id).await?;
@@ -87,9 +88,6 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
 
         let loser_points = db.points_data(loser.id.0).await?;
         let mut loser = Player::new(loser, loser_points).await;
-
-        info!("Winner\n{}", winner);
-        info!("Loser\n{}", loser);
 
         // Calculate new point total
         let (add, minus) = if winner.rank == loser.rank {
@@ -108,21 +106,29 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
         let winner_rank_status = winner_ori_rank.current_status(&winner.rank);
         db.update_points(winner_new_points, winner.id()).await?;
 
+        let loser_new_points = loser.minus(minus, &db).await?;
+        let loser_rank_status = loser_ori_rank.current_status(&loser.rank);
+        db.update_points(loser_new_points, loser.id()).await?;
+
+        let winner_id = winner.id();
+        let loser_id = loser.id();
+
+        winner.mark_win(&db).await?;
+        loser.mark_loss(&db).await?;
+
+        db.match_finished(&winner_id, &loser_id, &date).await?;
+
         let winner_msg = format!(
             "Winner: {}, {winner_points} -> {winner_new_points}. {winner_rank_status}",
             winner.name()
         );
-
-        let loser_new_points = loser.minus(minus, &db).await?;
-        let loser_rank_status = loser_ori_rank.current_status(&loser.rank);
-        db.update_points(loser_new_points, loser.id()).await?;
 
         let loser_msg = format!(
             "Loser: {}, {loser_points} -> {loser_new_points}. {loser_rank_status}",
             loser.name(),
         );
 
-        let final_msg =format!("\n{}\n{}", winner_msg, loser_msg);
+        let final_msg = format!("\n{}\n{}", winner_msg, loser_msg);
 
         info!("{}", final_msg);
 
@@ -137,14 +143,6 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
         mci.message
             .reply(&ctx, "The command has finished executing.")
             .await?;
-
-        let winner_id = winner.id();
-        let loser_id = loser.id();
-
-        winner.mark_win(&db).await?;
-        loser.mark_loss(&db).await?;
-
-        db.match_finished(&winner_id, &loser_id, &date).await?;
     }
 
     Ok(())
