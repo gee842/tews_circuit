@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::player::Player;
-use crate::{errors::Error, player::Streak};
+use crate::{errors::TewsError, player::Streak};
 
 use async_recursion::async_recursion;
 use tracing::{info, warn};
@@ -76,12 +76,10 @@ impl Database {
         original_date: &str,
         success: Option<bool>,
     ) -> Result<bool, SqlxError> {
-        info!("Date: {:?}", original_date);
         let date = match NaiveDateTime::parse_from_str(original_date, "%e %b %Y %H:%M") {
             Ok(date) => {
                 // SQLITE doesn't have a DATE type. But it does support
                 // dates as TEXT in ISO 8601 format.
-                info!("Date format accepted. Converting to ISO 8601");
                 let formatted_date = date.format("%Y-%m-%d %H:%M").to_string();
                 formatted_date
             }
@@ -105,22 +103,23 @@ impl Database {
             .execute(&self.conn)
             .await
         {
-            match Error::kind(e) {
-                Error::ForeignKeyConstraintNotMet => {
-                    info!("Unregistered player(s) detected, adding them to the database.");
+            match TewsError::kind(e) {
+                TewsError::ForeignKeyConstraintNotMet => {
+                    warn!("Unregistered player(s) detected, adding them to the database.");
                     self.find_missing_player(challenger, challenged).await?;
 
                     info!("New player(s) registered. Re-running function.");
                     self.add_new_challenge(challenger, challenged, original_date, None)
                         .await?;
                 }
-                Error::Unknown(msg) => {
+                TewsError::Unknown(msg) => {
+                    let msg = format!("UNKNOWN: {}", msg);
                     return Err(SqlxError::Protocol(msg));
                 }
-                Error::Locked => {
-                    warn!("Database is busy with another operation, please try again.");
+                TewsError::Locked => {
+                    warn!("Database is busy with another operation, please try again later.");
                 }
-                Error::None => {}
+                TewsError::None => {}
             }
         };
 

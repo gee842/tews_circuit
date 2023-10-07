@@ -6,7 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# Async stuff
 tokio = { version = "1.21.2", features = ["macros", "rt-multi-thread", "time"] }
 tokio-util = { version = "0.7.8", features = ["time"] }
 
@@ -18,3 +17,5 @@ async-recursion = "1.0.4"
 chrono = "0.4.26"
 poise = { version = "0.5.5" }
 sqlx = { version = "0.6", features = [ "runtime-tokio-rustls", "sqlite", "chrono" ] }
+
+anyhow = "1.0"

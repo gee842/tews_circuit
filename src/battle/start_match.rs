@@ -1,8 +1,8 @@
-use std::sync::Arc;
+use anyhow::{Context as AnyContext, Result as AnyResult};
 
+use poise::serenity_prelude::User;
 use poise::serenity_prelude::{ButtonStyle, CreateActionRow, CreateButton};
 use poise::serenity_prelude::{CacheHttp, CollectComponentInteraction, MessageBuilder};
-use poise::serenity_prelude::{MessageComponentInteraction, User};
 
 use crate::*;
 use player::Player;
@@ -38,7 +38,7 @@ async fn ongoing_match_menu(
 }
 
 #[poise::command(slash_command)]
-pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
+pub async fn start_match(ctx: Context<'_>) -> AnyResult<(), Error> {
     let db = ctx.data().database.clone();
 
     // The person who ran the `start_match` command.
@@ -75,8 +75,16 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
         mci.defer(ctx).await?;
 
         let winner_id: u64 = mci.data.custom_id.parse().unwrap();
-        let winner_points = db.points_data(winner_id).await?;
-        let winner = ctx.http().get_user(winner_id).await?;
+        let winner_points = db
+            .points_data(winner_id)
+            .await
+            .with_context(|| format!("Winner points data"))?;
+
+        let winner = ctx
+            .http()
+            .get_user(winner_id)
+            .await
+            .with_context(|| format!("Winner get user."))?;
 
         let mut winner = Player::new(winner, winner_points).await;
 
@@ -86,7 +94,11 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
             caller.clone()
         };
 
-        let loser_points = db.points_data(loser.id.0).await?;
+        let loser_points = db
+            .points_data(loser.id.0)
+            .await
+            .with_context(|| format!("loser points data"))?;
+
         let mut loser = Player::new(loser, loser_points).await;
 
         // Calculate new point total
@@ -102,21 +114,42 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
         let winner_ori_rank = winner.rank.clone();
         let loser_ori_rank = loser.rank.clone();
 
-        let winner_new_points = winner.add(add, &db).await?;
-        let winner_rank_status = winner_ori_rank.current_status(&winner.rank);
-        db.update_points(winner_new_points, winner.id()).await?;
+        let winner_new_points = winner
+            .add(add, &db)
+            .await
+            .with_context(|| format!("Winner add points"))?;
 
-        let loser_new_points = loser.minus(minus, &db).await?;
+        let winner_rank_status = winner_ori_rank.current_status(&winner.rank);
+        db.update_points(winner_new_points, winner.id())
+            .await
+            .with_context(|| format!("winner update points"))?;
+
+        let loser_new_points = loser
+            .minus(minus, &db)
+            .await
+            .with_context(|| format!("loser minus points"))?;
+
         let loser_rank_status = loser_ori_rank.current_status(&loser.rank);
-        db.update_points(loser_new_points, loser.id()).await?;
+        db.update_points(loser_new_points, loser.id())
+            .await
+            .with_context(|| format!("loser update points"))?;
 
         let winner_id = winner.id();
         let loser_id = loser.id();
 
-        winner.mark_win(&db).await?;
-        loser.mark_loss(&db).await?;
+        winner
+            .mark_win(&db)
+            .await
+            .with_context(|| format!("winner mark win"))?;
 
-        db.match_finished(&winner_id, &loser_id, &date).await?;
+        loser
+            .mark_loss(&db)
+            .await
+            .with_context(|| format!("loser mark loss"))?;
+
+        db.match_finished(&winner_id, &loser_id, &date)
+            .await
+            .with_context(|| format!("db match finished"))?;
 
         let winner_msg = format!(
             "Winner: {}, {winner_points} -> {winner_new_points}. {winner_rank_status}",
@@ -138,11 +171,14 @@ pub async fn start_match(ctx: Context<'_>) -> Result<(), Error> {
             .push(final_msg)
             .build();
 
-        ctx.say(msg).await?;
+        ctx.say(msg)
+            .await
+            .with_context(|| format!("start_match.rs:176"))?;
 
         mci.message
             .reply(&ctx, "The command has finished executing.")
-            .await?;
+            .await
+            .with_context(|| format!("start_match.rs:181"))?;
     }
 
     Ok(())
