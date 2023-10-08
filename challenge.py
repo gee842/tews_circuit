@@ -1,7 +1,8 @@
 from typing import Tuple
 import discord
+from discord.webhook.async_ import interaction_response_params
 
-from views import UserSelect, Calendar
+from views import ChallengeSubmission 
 
 from discord import app_commands, ChannelType
 from discord.ext import commands
@@ -19,43 +20,9 @@ class Challenge(commands.Cog):
         if channel.type == ChannelType.category or channel.type == ChannelType.forum:
             return
 
-        username = await self.user_selection(interaction)
-        if username is None:
-            return
+        view = ChallengeSubmission()
+        await interaction.response.send_message(view=view)
 
-        await channel.send(f"You wish to challenge {username.global_name}? Good luck!")
-
-        # TODO: FIX: everything below here isn't working.
-        date = await self.date_selection(interaction)
-        if date is None:
-            return
-
-        (day, month) = date
-        await channel.send(f"The challenge is on {day} {month}!")
-
-    async def user_selection(self, interaction: discord.Interaction) -> discord.User | None:
-        user_select = UserSelect()
-        await interaction.response.send_message(view=user_select)
-
-        await user_select.wait()
-
-        username = user_select.user
-
-        if username is None:
-            return
-
-        username = username[0]
-        return username
-
-    async def date_selection(self, interaction: discord.Interaction) -> Tuple[str, dict[str, str]] | None:
-        calendar = Calendar()
-        await interaction.response.send_message(view=calendar)
-        await calendar.wait()
-
-        day = calendar.day
-        month = calendar.month
-
-        if day is None or month is None:
-            return
-
-        return (day, month)
+        # i'd pass view.user and view.month and stuff
+        # into another function that will put that data
+        # into a database, I didn't write that part yet.
