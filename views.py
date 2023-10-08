@@ -18,7 +18,6 @@ class Months(Select):
             return
 
         await view.save_month(interaction, self.values)
-        await interaction.response.send_message("Month saved.")
 
 class Days(Select):
     def __init__(self):
@@ -31,7 +30,6 @@ class Days(Select):
             return
 
         await view.save_day(interaction, self.values)
-        await interaction.response.send_message("Day saved.")
 
 class ChallengeSubmission(View):
     user = None
@@ -51,6 +49,8 @@ class ChallengeSubmission(View):
 
     async def save_month(self, interaction: Interaction, month: str):
         self.month = month
+        await interaction.response.send_message("Month saved.")
 
     async def save_day(self, interaction: Interaction, day: str):
         self.day = day
+        await interaction.response.send_message("Day saved.")
