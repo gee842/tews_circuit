@@ -1,6 +1,4 @@
-from typing import Tuple
 import discord
-from discord.webhook.async_ import interaction_response_params
 
 from views import ChallengeSubmission 
 
@@ -22,7 +20,3 @@ class Challenge(commands.Cog):
 
         view = ChallengeSubmission()
         await interaction.response.send_message(view=view)
-
-        # i'd pass view.user and view.month and stuff
-        # into another function that will put that data
-        # into a database, I didn't write that part yet.

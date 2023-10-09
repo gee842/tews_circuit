@@ -2,6 +2,7 @@
 # Modal only text input, yes
 
 import asyncio
+import logging
 import os
 
 from utils import Utils
@@ -9,6 +10,7 @@ from challenge import Challenge
 
 import discord
 from discord.ext import commands
+from discord.utils import setup_logging
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -31,6 +33,7 @@ class Tews(commands.Cog):
 
 async def main():
     token = os.environ["DISCORD_TOKEN"]
+    setup_logging(level=logging.INFO, root=False)
     async with bot:
         await bot.add_cog(Tews(bot))
         await bot.add_cog(Utils(bot))
