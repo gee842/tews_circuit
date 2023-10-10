@@ -19,4 +19,4 @@ class Challenge(commands.Cog):
             return
 
         view = ChallengeSubmission()
-        await interaction.response.send_message(view=view)
+        await interaction.response.send_message(view=view, ephemeral=True)
