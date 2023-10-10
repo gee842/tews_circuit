@@ -5,8 +5,8 @@ import asyncio
 import logging
 import os
 
-from utils import Utils
-from challenge import Challenge
+from cogs.utils import Utils
+from cogs.challenge import Challenge
 
 import discord
 from discord.ext import commands

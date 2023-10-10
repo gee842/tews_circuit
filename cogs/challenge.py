@@ -1,6 +1,6 @@
 import discord
 
-from views import ChallengeSubmission 
+from forms.challenge_submission import ChallengeSubmission 
 
 from discord import app_commands, ChannelType
 from discord.ext import commands
