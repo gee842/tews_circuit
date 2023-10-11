@@ -1,9 +1,10 @@
 import discord
 
-from forms.challenge_submission import ChallengeSubmission 
+from forms.challenge_submission import ChallengeSubmission
 
 from discord import app_commands, ChannelType
 from discord.ext import commands
+
 
 class Challenge(commands.Cog):
     def __init__(self, bot):

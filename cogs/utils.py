@@ -3,7 +3,8 @@ from typing import Optional, Literal
 import discord
 
 from discord.ext import commands
-from discord.ext.commands import Greedy, Context 
+from discord.ext.commands import Greedy, Context
+
 
 class Utils(commands.Cog):
     def __init__(self, bot):
@@ -12,11 +13,16 @@ class Utils(commands.Cog):
 
     @commands.command(name="ping")
     async def ping(self, ctx):
-       await ctx.send("Dong!")
+        await ctx.send("Dong!")
 
     @commands.command(name="sync")
-    async def sync(self, ctx: Context, guilds: Greedy[discord.Object], spec: Optional[Literal["sync", "copy", "reset"]] = None) -> None:
-        tree = ctx.bot.tree 
+    async def sync(
+        self,
+        ctx: Context,
+        guilds: Greedy[discord.Object],
+        spec: Optional[Literal["sync", "copy", "reset"]] = None,
+    ) -> None:
+        tree = ctx.bot.tree
 
         if not guilds:
             if spec == "sync":
@@ -31,9 +37,8 @@ class Utils(commands.Cog):
             else:
                 synced = await tree.sync()
 
-            await ctx.send(
-                f"Synced {len(synced)} commands {'globally' if spec is None else 'to the current guild.'}"
-            )
+            msg = "globally" if spec is None else "to the current guild."
+            await ctx.send(f"Synced {len(synced)} commands {msg}")
             return
 
         ret = 0
