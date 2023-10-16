@@ -26,5 +26,22 @@ async def execute_from_file(cursor: Cursor, name: str):
         lines = "".join(f.readlines())
         await cursor.executescript(lines)
 
+
+async def insert_new_player(cursor: Cursor, uid: int):
+    await cursor.execute(
+        "INSERT INTO Players Values(?, ?, ?, ?, ?, ?, ?, ?)",
+        (uid, 0, 0, 0, "Unrated", 750, 0, 0),
+    )
+
+
+async def does_player_exist(cursor: Cursor, uid: int) -> bool:
+    results = await cursor.execute("SELECT UID FROM Players WHERE UID = ?", uid)
+    results = await results.fetchone()
+    if results is None:
+        return False
+
+    return True
+
+
 if __name__ == "__main__":
     pass
