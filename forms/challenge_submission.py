@@ -1,19 +1,19 @@
-from discord import SelectOption
-from discord import Interaction
-from discord import ButtonStyle
+from discord import SelectOption, Interaction, ButtonStyle
 
-from discord.ui import View
-from discord.ui import UserSelect, select, Select
-from discord.ui import button, Button
+from discord.ui import View, Modal
+from discord.ui import UserSelect, Select, select
+from discord.ui import Button, button
+
+from discord.ui import TextInput
 
 
 class ChallengeSubmission(View):
     user = None
     month = None
-    day = None
 
-    days_first_half = [SelectOption(label=str(x), value=str(x)) for x in range(1, 16)]
-    days_second_half = [SelectOption(label=str(x), value=str(x)) for x in range(16, 31)]
+    # These two are handled by the modal DateTime
+    day = None
+    time = None
 
     month_names = [
         "January",
@@ -55,58 +55,32 @@ class ChallengeSubmission(View):
         self.month = select_item.values
         await interaction.response.send_message("Month saved!", ephemeral=True)
 
-    @select(
-        cls=Select,
-        placeholder="Select the days of the challenge (1 - 15)",
-        options=days_first_half,
-    )
-    async def select_days_first_half(
-        self, interaction: Interaction, select_item: Select
-    ):
-        self.day = select_item.values
-        await interaction.response.send_message("Day saved!", ephemeral=True)
-
-    @select(
-        cls=Select,
-        placeholder="Select the days of the challenge (16 - 31)",
-        options=days_second_half,
-    )
-    async def select_days_second_half(
-        self, interaction: Interaction, select_item: Select
-    ):
-        self.day = select_item.values
-        await interaction.response.send_message("Day saved!", ephemeral=True)
-
     @button(label="Submit", style=ButtonStyle.grey)
     async def submit(self, interaction: Interaction, button: Button):
         response = interaction.response
-        fields_not_filled = (
-            self.day is None and self.month is None and self.user is None
-        )
+        fields_not_filled = self.month is None or self.user is None
 
         if fields_not_filled:
-            if self.day is None:
-                await response.send_message(
-                    "The day is not filled out.", ephemeral=True
-                )
+            msg = "The user is not filled out or you have chosen a bot/yourself."
+            if self.user is None:
+                await response.send_message(msg, ephemeral=True)
+
+                return
 
             if self.month is None:
-                await response.send_message(
-                    "The month is not filled out.", ephemeral=True
-                )
+                msg = "The month is not filled out."
+                await response.send_message(msg, ephemeral=True)
 
-            if self.user is None:
-                await response.send_message(
-                    "The user is not filled out or you have chosen a bot/yourself.",
-                    ephemeral=True,
-                )
+                return
 
-            return
+        time = DateTime()
+        await response.send_modal(time)
+        await time.wait()
+
+        self.time = time.time
+        self.day = time.day
 
         await self.disable_everything()
-        await response.edit_message(content="Challenge registered.", view=self)
-
-        self.stop()
 
     @button(label="Cancel", style=ButtonStyle.grey)
     async def cancel(self, interaction: Interaction, button: Button):
@@ -118,3 +92,16 @@ class ChallengeSubmission(View):
     async def disable_everything(self):
         for item in self.children:
             item.disabled = True  # type: ignore
+
+        self.stop()
+
+
+class DateTime(Modal, title="Day and time of match"):
+    time = TextInput(label="Time of match (24 hour)", placeholder="18:30, 23:30")
+    day = TextInput(label="Day of the month", placeholder="20, 31")
+
+    async def on_submit(self, interaction: Interaction):
+        await interaction.response.send_message("Time saved.", ephemeral=True)
+        # TODO: Add checks for the correct input.
+
+        self.stop()
