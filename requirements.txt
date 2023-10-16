@@ -1,10 +1,10 @@
 aiohttp==3.7.4.post0
-aiosqlite==0.19.0
+asqlite @ git+https://github.com/Rapptz/asqlite@fcd8ce0672562e440f99eb4b7a56eba16f6abf4e
 async-timeout==3.0.1
 attrs==23.1.0
 chardet==4.0.0
-discord.py==1.7.3
-discord.py-stubs==1.7.3
+discord==2.3.2
+discord.py==2.3.2
 idna==3.4
 multidict==6.0.4
 mypy-extensions==1.0.0
