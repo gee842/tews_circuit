@@ -1,5 +1,6 @@
-import aiosqlite
-from aiosqlite import Cursor
+import asqlite
+from asqlite import Cursor
+
 
 async def verify_database():
     async with asqlite.connect("database.db") as db:

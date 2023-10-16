@@ -2,5 +2,8 @@
 __pycache__/
 
 discord.log
+
 database.db
 database.db-journal
+database.db-shm
+database.db-wal
