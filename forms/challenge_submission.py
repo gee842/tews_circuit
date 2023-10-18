@@ -1,3 +1,5 @@
+import time
+
 from discord import SelectOption, Interaction, ButtonStyle
 
 from discord.ui import View, Modal
@@ -73,12 +75,12 @@ class ChallengeSubmission(View):
 
                 return
 
-        time = DateTime()
-        await response.send_modal(time)
-        await time.wait()
+        date_time = DateTime()
+        await response.send_modal(date_time)
+        await date_time.wait()
 
-        self.time = time.time
-        self.day = time.day
+        self.time = date_time.date_time
+        self.day = date_time.day
 
         await self.disable_everything()
 
@@ -97,11 +99,18 @@ class ChallengeSubmission(View):
 
 
 class DateTime(Modal, title="Day and time of match"):
-    time = TextInput(label="Time of match (24 hour)", placeholder="18:30, 23:30")
+    date_time = TextInput(label="Time of match (24 hour)", placeholder="18:30, 23:30")
     day = TextInput(label="Day of the month", placeholder="20, 31")
 
     async def on_submit(self, interaction: Interaction):
-        await interaction.response.send_message("Time saved.", ephemeral=True)
-        # TODO: Add checks for the correct input.
+        response = interaction.response
+        try:
+            time.strptime(f"{self.day.value} {self.date_time.value}", "%d %H:%M")
+        except ValueError:
+            await response.send_message(
+                "Invalid day or time. Try again.", ephemeral=True
+            )
+            return
 
+        await interaction.response.send_message("Time saved.", ephemeral=True)
         self.stop()
