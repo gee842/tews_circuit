@@ -12,6 +12,7 @@ from discord.ui import TextInput
 class ChallengeSubmission(View):
     user = None
     month = None
+    cancelled = False
 
     # These two are handled by the modal DateTime
     day = None
@@ -90,6 +91,8 @@ class ChallengeSubmission(View):
         await interaction.response.edit_message(
             content="Challenge cancelled.", view=self
         )
+
+        self.cancelled = True
 
     async def disable_everything(self):
         for item in self.children:
