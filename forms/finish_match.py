@@ -53,8 +53,8 @@ class FinishMatch(View):
 
     @button(label="You lost :(")
     async def selected_user_wins(self, interaction: Interaction, button: Button):
-        selected_user_update = await update_player_info(self.selected_user.id, False)
-        caller_update = await update_player_info(self.caller.id, True)
+        caller_update = await update_player_info(self.caller.id, False)
+        selected_user_update = await update_player_info(self.selected_user.id, True)
 
         await interaction.response.send_message(
             f"{self.selected_user}: {selected_user_update}\n"
