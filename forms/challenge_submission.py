@@ -87,12 +87,12 @@ class ChallengeSubmission(View):
 
     @button(label="Cancel", style=ButtonStyle.grey)
     async def cancel(self, interaction: Interaction, button: Button):
+        self.cancelled = True
+
         await self.disable_everything()
         await interaction.response.edit_message(
             content="Challenge cancelled.", view=self
         )
-
-        self.cancelled = True
 
     async def disable_everything(self):
         for item in self.children:

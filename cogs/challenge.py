@@ -29,10 +29,11 @@ class Challenge(commands.Cog):
         await response.send_message(view=chal_sub, ephemeral=True)
         await chal_sub.wait()
 
-        year = datetime.now().date().year
-        date = f"{chal_sub.day} {chal_sub.month[0]} {year} {chal_sub.time}"  # type: ignore
+        if not chal_sub.cancelled:
+            year = datetime.now().date().year
+            date = f"{chal_sub.day} {chal_sub.month[0]} {year} {chal_sub.time}"  # type: ignore
 
-        await new_challenge(date, interaction.user, chal_sub.user)  # type: ignore
+            await new_challenge(date, interaction.user, chal_sub.user)  # type: ignore
 
     @app_commands.command(
         name="finish", description="Mark a match as finish and process point totals."
@@ -40,8 +41,6 @@ class Challenge(commands.Cog):
     async def finish(self, interaction: discord.Interaction) -> None:
         response = interaction.response
 
-        ongoing_challenge = FinishMatch()
-        await response.send_message(view=ongoing_challenge)
-        await ongoing_challenge.wait()
-
-        await response.send_message("Done")
+        match = FinishMatch()
+        await response.send_message(view=match, ephemeral=True)
+        await match.wait()
