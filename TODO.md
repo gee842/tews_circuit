@@ -4,5 +4,6 @@
     - [ ] Ensure there are checks in place to prevent double booking; a player shouldn't be able to have two matches scheduled for the same time.
 - `finish_match`
     - [x] Figure out how to add buttons AFTER the user to challenge has been selected.
-    - [ ] If the match is with yourself or a bot, the match with yourself in it will be marked as finished.
-    - [ ] Add checks for when the incorrect user is selected.
+    - [x] If the match is with yourself or a bot, the match with yourself in it will be marked as finished.
+    - [x] Add checks for when the incorrect user is selected.
+    - [x] Streak bonus is applied incorrectly.

@@ -43,5 +43,11 @@ async def does_player_exist(cursor: Cursor, uid: int) -> bool:
     return True
 
 
+async def get_player_data(cursor: Cursor, uid: int):
+    sql = "SELECT * FROM Players WHERE UID = ?"
+    result = await cursor.execute(sql, (uid))
+    return await result.fetchone()
+
+
 if __name__ == "__main__":
     pass
