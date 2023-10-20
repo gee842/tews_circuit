@@ -31,7 +31,7 @@ class Challenge(commands.Cog):
 
         if not chal_sub.cancelled:
             year = datetime.now().date().year
-            date = f"{chal_sub.day} {chal_sub.month[0]} {year} {chal_sub.time}"  # type: ignore
+            date = f"{year}-{chal_sub.month[0]}-{chal_sub.day} {chal_sub.time}:00"  # type: ignore
 
             await new_challenge(date, interaction.user, chal_sub.user)  # type: ignore
 

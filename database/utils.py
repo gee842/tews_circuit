@@ -30,7 +30,7 @@ async def execute_from_file(cursor: Cursor, name: str):
 async def insert_new_player(cursor: Cursor, uid: int):
     await cursor.execute(
         "INSERT INTO Players Values(?, ?, ?, ?, ?, ?, ?, ?)",
-        (uid, 0, 0, 0, "Unrated", 750, 0, 0),
+        (uid, 0, 0, 0, "Unrated", 900, 0, 0),
     )
 
 

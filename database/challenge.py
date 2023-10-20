@@ -74,6 +74,10 @@ def calculate_points(points: int, streak: int, win: bool):
         bonus = 10
 
     points += bonus
+
+    if points <= 750:
+        points = 750
+
     return points
 
 
