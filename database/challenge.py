@@ -127,3 +127,56 @@ async def update_player_info(user: int, win: bool):
             await cursor.execute(sql, user)
 
             return f"{point_update}\n{rank_update}"
+
+
+async def disqualifications():
+    async with asqlite.connect("database.db") as db:
+        async with db.cursor() as cursor:
+            condition = "Date < Date('now') AND Finished = 0"
+            sql = f"""
+            SELECT
+                Challenger, Challenged, Date
+            FROM 
+                History
+            WHERE {condition}
+            """
+
+            result = await cursor.execute(sql)
+            matches = await result.fetchall()
+
+            for data in matches:
+                players = [data[0], data[1]]  # p1 & p2
+
+                for player in players:
+                    sql = "SELECT Points FROM Players WHERE UID = ?"
+                    result = await cursor.execute(sql, player)
+                    point = await result.fetchone()
+                    if point is None:
+                        return
+
+                    points = point[0]
+                    # Points can't be lower than 750.
+                    if points == 750:
+                        continue
+
+                    sql = """
+                    UPDATE
+                        Players
+                    SET
+                        Disqualifications = Disqualifications + 1,
+                        Points = Points - 10
+                    WHERE
+                        UID = ?
+                    """
+
+                    await cursor.execute(sql, player)
+
+            sql = f"""
+            UPDATE 
+                History
+            SET
+                Finished = 1
+            WHERE {condition}
+            """
+
+            await cursor.execute(sql)

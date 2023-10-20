@@ -1,9 +1,7 @@
-# Views only buttons and selects.
-# Modal only text input, yes
-
 import os
 import asyncio
 import logging
+import threading
 
 from cogs.utils import Utils
 from cogs.challenge import Challenge
@@ -13,6 +11,16 @@ from discord.ext import commands
 from discord.utils import setup_logging
 
 from database import verify_database
+from database.challenge import disqualifications
+
+async def process_disqualifications():
+    while True:
+        await asyncio.sleep(60 * 5)
+        await disqualifications()
+
+def start_loop(loop):
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(process_disqualifications())
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -45,6 +53,10 @@ async def main():
         await bot.add_cog(Tews(bot))
         await bot.add_cog(Utils(bot))
         await bot.add_cog(Challenge(bot))
+
+        loop = asyncio.new_event_loop()
+        thread = threading.Thread(target=start_loop, args=(loop,))
+        thread.start()
 
         await bot.start(token)
 
