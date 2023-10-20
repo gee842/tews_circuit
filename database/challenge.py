@@ -100,7 +100,7 @@ def create_sql(win: bool, new_points: int, rank_update: str, player: Player):
     """
 
     if rank_update != "":
-        set_query += f",\nRank = {player.rank.name}"
+        set_query += f",\nRank = '{player.rank.name}'"
 
     return set_query
 

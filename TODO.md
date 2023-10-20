@@ -9,3 +9,8 @@
     - [x] If the match is with yourself or a bot, the match with yourself in it will be marked as finished.
     - [x] Add checks for when the incorrect user is selected.
     - [x] Streak bonus is applied incorrectly.
+- Point calculation
+    - [x] The message for point updates after a match is bad, update it.
+    - [ ] Add different point calculation when vs people who are higher/lower rank than you.
+- Promotion
+    - [x] There is an error with Promotion. Apparently the rank is mistaken for a column in the table.

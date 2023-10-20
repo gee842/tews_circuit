@@ -16,8 +16,8 @@ class Player:
     def changed(self, points: int):
         other = Player(0, points).rank
         if self.rank < other:
-            return f"Promotion: {self} to {other}"
+            return f"Promotion: {other.name} -> {self.rank.name}"
         elif self.rank > other:
-            return f"Demotion: {self} -> {other}."
+            return f"Demotion:  {other.name} -> {self.rank.name}."
         else:
             return """"""
