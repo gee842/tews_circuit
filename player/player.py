@@ -1,5 +1,4 @@
-from rank import Rank
-
+from .rank import Rank
 
 class Player:
     def __init__(self, uid: int, points: int):

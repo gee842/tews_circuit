@@ -1,8 +1,8 @@
 from typing import Tuple, Any
 
+from player import Player
 from database.utils import get_player_data
 from . import insert_new_player, does_player_exist
-from player import Player
 
 import asqlite
 
