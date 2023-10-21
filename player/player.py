@@ -11,12 +11,18 @@ class Player:
     def __repr__(self):
         return f"{self.uid}: {self.points} ({self.rank.name})"
 
-    def changed(self, points: int) -> str:
+    def has_rank_changed(self, points: int) -> str:
+        """
+        Used to determine if a player's rank has changed.
+        self.rank would be the newest rank, and points would be the
+        player's previous points before calculation.
+        """
+
         other = determine_rank(points)
-        msg = f"{other.name} -> {self.rank.name}." 
-        if self.rank < other:
+        msg = f"{other.name} -> {self.rank.name}."
+        if other < self.rank:
             return f"Promotion: {msg}"
-        elif self.rank > other:
+        elif other > self.rank:
             return f"Demotion:  {msg}"
         else:
             return """"""
@@ -49,4 +55,5 @@ class Player:
         if self.points <= 750:
             self.points = 750
 
+        self.rank = determine_rank(self.points)
         return self.points

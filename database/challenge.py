@@ -98,8 +98,8 @@ async def update_player_info(user: int, other: int, win: bool):
             new_points = p1.calculate_points(win, p2.rank)
 
             point_update = f"{ori_points} -> {new_points}"
-            rank_update = p1.changed(int(ori_points))
-            set_query = create_sql(win, new_points, rank_update[0], p1)
+            rank_update = p1.has_rank_changed(int(ori_points))
+            set_query = create_sql(win, new_points, rank_update, p1)
 
             sql = f"""
             UPDATE Players
@@ -111,7 +111,7 @@ async def update_player_info(user: int, other: int, win: bool):
 
             await cursor.execute(sql, user)
 
-            return f"{point_update}\n{rank_update}"
+            return f"{point_update}. {rank_update}"
 
 
 async def disqualifications():

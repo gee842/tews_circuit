@@ -15,4 +15,4 @@
             - Turns out the problem was due to the values of the enum being set incorrectly. A slight detail but something important.
 - Promotion
     - [x] There is an error with Promotion. Apparently the rank is mistaken for a column in the table.
-    - [ ] Rank is not properly updated. Gold -> Emerald not taken into affect (there is a chance this is a side effect of testing for rank bonuses in point calculation).
+    - [x] Rank is not properly updated. Gold -> Emerald not taken into affect (there is a chance this is a side effect of testing for rank bonuses in point calculation).
