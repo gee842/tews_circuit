@@ -32,10 +32,13 @@ async def has_match_with_player(user1: int, user2: int) -> Tuple[Any, Any, Any] 
             SELECT * 
             FROM History 
             WHERE 
-                Finished = 0 AND 
                 ((Challenger = ? AND Challenged = ?)
                 OR 
                 (Challenger = ? AND Challenged = ?))
+                AND
+                Date >= Date('now')
+                AND
+                Finished = 0
             ORDER BY Date ASC 
             LIMIT 1;
             """
