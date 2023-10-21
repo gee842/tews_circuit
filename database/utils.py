@@ -1,6 +1,8 @@
 import asqlite
 from asqlite import Cursor
 
+from player.player import Player
+
 
 async def verify_database():
     async with asqlite.connect("database.db") as db:
@@ -46,7 +48,10 @@ async def does_player_exist(cursor: Cursor, uid: int) -> bool:
 async def get_player_data(cursor: Cursor, uid: int):
     sql = "SELECT * FROM Players WHERE UID = ?"
     result = await cursor.execute(sql, (uid))
-    return await result.fetchone()
+    result = await result.fetchone()
+    points, win_streak, lose_streak = result[5::]
+
+    return Player(uid, points, max(win_streak, lose_streak))
 
 
 if __name__ == "__main__":

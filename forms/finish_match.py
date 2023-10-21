@@ -43,8 +43,11 @@ class FinishMatch(View):
 
     @button(label="You win :D")
     async def caller_wins(self, interaction: Interaction, button: Button):
-        caller_update = await update_player_info(self.caller.id, True)
-        selected_user_update = await update_player_info(self.selected_user.id, False)
+        winner = self.caller.id
+        loser = self.selected_user.id
+
+        caller_update = await update_player_info(winner, loser, True)
+        selected_user_update = await update_player_info(loser, winner, False)
 
         await interaction.response.send_message(
             f"{self.caller}: {caller_update}\n"
@@ -53,8 +56,11 @@ class FinishMatch(View):
 
     @button(label="You lost :(")
     async def selected_user_wins(self, interaction: Interaction, button: Button):
-        caller_update = await update_player_info(self.caller.id, False)
-        selected_user_update = await update_player_info(self.selected_user.id, True)
+        winner = self.selected_user.id
+        loser = self.caller.id
+
+        selected_user_update = await update_player_info(winner, loser, True)
+        caller_update = await update_player_info(loser, winner, False)
 
         await interaction.response.send_message(
             f"{self.selected_user}: {selected_user_update}\n"

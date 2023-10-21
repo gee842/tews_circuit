@@ -2,6 +2,7 @@ from typing import Tuple, Any
 
 from player import Player
 from database.utils import get_player_data
+from player.rank import Rank, determine_rank
 from . import insert_new_player, does_player_exist
 
 import asqlite
@@ -60,27 +61,6 @@ async def finish_match(challenger: int, challenged: int, date: str):
             await cursor.execute(sql, (challenger, challenged, date))
 
 
-def calculate_points(points: int, streak: int, win: bool):
-    if win:
-        points = points + 25
-    else:
-        points = points - 25
-
-    if streak == 0:
-        bonus = 0
-    elif streak == 1:
-        bonus = 5
-    else:
-        bonus = 10
-
-    points += bonus
-
-    if points <= 750:
-        points = 750
-
-    return points
-
-
 def create_sql(win: bool, new_points: int, rank_update: str, player: Player):
     if win:
         streak_update = """
@@ -105,20 +85,19 @@ def create_sql(win: bool, new_points: int, rank_update: str, player: Player):
     return set_query
 
 
-async def update_player_info(user: int, win: bool):
+async def update_player_info(user: int, other: int, win: bool):
     async with asqlite.connect("database.db") as db:
         async with db.cursor() as cursor:
-            data = await get_player_data(cursor, user)
-            (ori_points, win_streak, lose_streak) = data[5::]
+            p1 = await get_player_data(cursor, user)
+            ori_points = p1.points
 
-            streaks = max(int(win_streak), int(lose_streak))
-            new_points = calculate_points(ori_points, streaks, win)
-
-            player = Player(user, new_points)
+            p2 = await get_player_data(cursor, other)
+            p1.calculate_points(win, p2.rank)
+            new_points = p1.points
 
             point_update = f"{ori_points} -> {new_points}"
-            rank_update = player.changed(int(ori_points))
-            set_query = create_sql(win, new_points, rank_update, player)
+            rank_update = p1.changed(int(ori_points))
+            set_query = create_sql(win, new_points, rank_update, p1)
 
             sql = f"""
             UPDATE Players

@@ -29,3 +29,14 @@ class Rank(Enum):
         if self.__class__ is other.__class__:
             return self.value < other.value
         return NotImplemented
+
+
+def determine_rank(points: int) -> Rank:
+    if points >= 1500:
+        return Rank.Diamond
+    elif points >= 1300:
+        return Rank.Emerald
+    elif points >= 1100:
+        return Rank.Gold
+    else:
+        return Rank.Unrated
