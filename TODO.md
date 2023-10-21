@@ -12,7 +12,7 @@
     - [x] The message for point updates after a match is bad, update it.
     - [x] Add different point calculation when vs people who are higher/lower rank than you.
         - [x] Problem with rank bonuses. The bonuses are applied inversly. Meaning higher ranks will earn more if they beat lower ranking players and vice versa.
-            - Turns out the problem was due to the values of the enum being set incorrectly. A slight detail but something important.
+            - Turns out the problem was due to the values of the enum being set incorrectly. A slight detail but something important. Fixed in [1ca7095](https://github.com/gee842/tews_circuit/commit/1ca70950e23ecdb825f256b25e025ea7ba21a1b7)
 - Promotion
     - [x] There is an error with Promotion. Apparently the rank is mistaken for a column in the table.
-    - [x] Rank is not properly updated. Gold -> Emerald not taken into affect (there is a chance this is a side effect of testing for rank bonuses in point calculation).
+    - [x] Rank is not properly updated. Gold -> Emerald not taken into affect (this is a side effect of [this](https://github.com/gee842/tews_circuit/commit/1ca70950e23ecdb825f256b25e025ea7ba21a1b7)).
