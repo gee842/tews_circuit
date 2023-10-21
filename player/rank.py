@@ -2,10 +2,10 @@ from enum import Enum
 
 
 class Rank(Enum):
-    Diamond = 1
-    Emerald = 2
-    Gold = 3
-    Unrated = 4
+    Diamond = 4
+    Emerald = 3
+    Gold = 2
+    Unrated = 1
 
     def __repr__(self):
         return f"{self._name_}"

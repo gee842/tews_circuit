@@ -95,12 +95,11 @@ async def update_player_info(user: int, other: int, win: bool):
             ori_points = p1.points
 
             p2 = await get_player_data(cursor, other)
-            p1.calculate_points(win, p2.rank)
-            new_points = p1.points
+            new_points = p1.calculate_points(win, p2.rank)
 
             point_update = f"{ori_points} -> {new_points}"
             rank_update = p1.changed(int(ori_points))
-            set_query = create_sql(win, new_points, rank_update, p1)
+            set_query = create_sql(win, new_points, rank_update[0], p1)
 
             sql = f"""
             UPDATE Players

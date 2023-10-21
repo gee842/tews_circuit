@@ -8,20 +8,20 @@ class Player:
         self.streak = streak
         self.rank = determine_rank(points)
 
-    def changed(self, points: int):
+    def __repr__(self):
+        return f"{self.uid}: {self.points} ({self.rank.name})"
+
+    def changed(self, points: int) -> str:
         other = determine_rank(points)
+        msg = f"{other.name} -> {self.rank.name}." 
         if self.rank < other:
-            return f"Promotion: {other.name} -> {self.rank.name}"
+            return f"Promotion: {msg}"
         elif self.rank > other:
-            return f"Demotion:  {other.name} -> {self.rank.name}."
+            return f"Demotion:  {msg}"
         else:
             return """"""
 
     def calculate_points(self, win: bool, other_rank: Rank):
-        # for ppl not in the same group basic points are:
-        # higher than u +25 and -15
-        # lower than u +10 and -30
-
         rank_bonus = 25
         if win:
             if self.rank > other_rank:
@@ -41,7 +41,7 @@ class Player:
         streak_bonus = 0
         if self.streak == 1:
             streak_bonus = 5
-        else:
+        elif self.streak >= 2:
             streak_bonus = 10
 
         self.points += streak_bonus
