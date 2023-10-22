@@ -54,6 +54,23 @@ async def get_player_data(cursor: Cursor, uid: int):
     return Player(uid, points, max(win_streak, lose_streak))
 
 
+async def get_pending_matches(uid: int):
+    async with asqlite.connect("database.db") as db:
+        async with db.cursor() as cursor:
+            sql = f"""
+            SELECT
+                Challenged, Date
+            FROM
+                History
+            WHERE
+                (Challenger = '{uid}' OR Challenged = '{uid}')
+                AND Finished = 0
+            """
+
+            result = await cursor.execute(sql)
+            return await result.fetchall()
+
+
 async def player_has_match_at_time(uid: int, date: str) -> bool:
     async with asqlite.connect("database.db") as db:
         async with db.cursor() as cursor:
