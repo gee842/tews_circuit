@@ -1,4 +1,4 @@
-import time
+from datetime import datetime
 
 from discord import SelectOption, Interaction, ButtonStyle
 
@@ -78,12 +78,32 @@ class ChallengeSubmission(View):
 
                 return
 
+        current_month = datetime.now().date().month
+        selected_month = self.month[0]  # type: ignore
+        selected_month = datetime.strptime(selected_month, "%m").month
+
+        if selected_month < current_month:
+            await response.send_message("Choose a future/present month.", ephemeral=True)
+            return
+
         date_time = DateTime()
         await response.send_modal(date_time)
         await date_time.wait()
 
-        self.time = date_time.date_time
+        self.time = date_time.time
         self.day = date_time.day
+
+        year = datetime.now().date().year
+        selected_time = f"{year}-{selected_month}-{self.day} {self.time}:00"
+        try:
+            selected_time = datetime.strptime(selected_time, "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            return
+
+        current_time = datetime.now()
+
+        if selected_time < current_time:
+            return
 
         await self.disable_everything()
 
@@ -104,16 +124,36 @@ class ChallengeSubmission(View):
 
 
 class DateTime(Modal, title="Day and time of match"):
-    date_time = TextInput(label="Time of match (24 hour)", placeholder="18:30, 23:30")
+    time = TextInput(label="Time of match (24 hour)", placeholder="18:30, 23:30")
     day = TextInput(label="Day of the month", placeholder="20, 31")
 
     async def on_submit(self, interaction: Interaction):
         response = interaction.response
         try:
-            time.strptime(f"{self.day.value} {self.date_time.value}", "%d %H:%M")
+            challenge_datetime = datetime.strptime(
+                f"{self.day.value} {self.time.value}", "%d %H:%M"
+            )
         except ValueError:
             await response.send_message(
                 "Invalid day or time. Try again.", ephemeral=True
+            )
+            return
+
+        current_datetime = datetime.now()
+        current_day = current_datetime.date().day
+        if challenge_datetime.day < current_day:
+            await response.send_message("Choose a future/present day.", ephemeral=True)
+            return
+
+        current_hour = current_datetime.hour
+        if challenge_datetime.hour < current_hour:
+            await response.send_message("Choose a future/present hour.", ephemeral=True)
+            return
+
+        current_minute = current_datetime.minute
+        if challenge_datetime.minute < current_minute:
+            await response.send_message(
+                "Choose a future/present minute.", ephemeral=True
             )
             return
 
