@@ -78,7 +78,7 @@ async def player_has_match_at_time(uid: int, date: str) -> bool:
             SELECT * FROM History
             WHERE 
                 (Challenger = "{uid}" OR Challenged = "{uid}")
-                AND Date >= "{date}"
+                AND Date = "{date}"
             """
 
             result = await cursor.execute(sql)
