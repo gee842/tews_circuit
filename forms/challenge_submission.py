@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from discord import SelectOption, Interaction, ButtonStyle
+from discord import SelectOption, Interaction, ButtonStyle, User
 
 from discord.ui import View, Modal
 from discord.ui import UserSelect, Select, select
@@ -8,9 +8,11 @@ from discord.ui import Button, button
 
 from discord.ui import TextInput
 
+from database.utils import player_has_match_at_time
+
 
 class ChallengeSubmission(View):
-    user = None
+    user: User | None = None
     month = None
     cancelled = False
 
@@ -51,7 +53,7 @@ class ChallengeSubmission(View):
             )
         else:
             await interaction.response.send_message("User saved!", ephemeral=True)
-            self.user = values[0]
+            self.user = values[0] # type: ignore
 
     @select(
         cls=Select, placeholder="Select the month of the challenge.", options=months
@@ -83,7 +85,9 @@ class ChallengeSubmission(View):
         selected_month = datetime.strptime(selected_month, "%m").month
 
         if selected_month < current_month:
-            await response.send_message("Choose a future/present month.", ephemeral=True)
+            await response.send_message(
+                "Choose a future/present month.", ephemeral=True
+            )
             return
 
         date_time = DateTime()
@@ -101,8 +105,20 @@ class ChallengeSubmission(View):
             return
 
         current_time = datetime.now()
-
         if selected_time < current_time:
+            return
+
+        selected_time_str = selected_time.__str__()
+        followup = interaction.followup
+
+        # If caller has match
+        if await player_has_match_at_time(interaction.user.id, selected_time_str):
+            await followup.send(f"You have a match on {selected_time_str}. Choose another time.")
+            return
+
+        # If challenged has match
+        if await player_has_match_at_time(self.user.id, selected_time_str):  # type: ignore
+            await followup.send(f"{self.user} has a match on {selected_time_str}. Choose another time.")
             return
 
         await self.disable_everything()

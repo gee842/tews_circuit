@@ -54,5 +54,22 @@ async def get_player_data(cursor: Cursor, uid: int):
     return Player(uid, points, max(win_streak, lose_streak))
 
 
+async def player_has_match_at_time(uid: int, date: str) -> bool:
+    async with asqlite.connect("database.db") as db:
+        async with db.cursor() as cursor:
+            sql = f"""
+            SELECT * FROM History
+            WHERE 
+                (Challenger = "{uid}" OR Challenged = "{uid}")
+                AND Date >= "{date}"
+            """
+
+            result = await cursor.execute(sql)
+            if await result.fetchone() is None:
+                return False
+
+            return True
+
+
 if __name__ == "__main__":
     pass
