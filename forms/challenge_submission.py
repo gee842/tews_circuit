@@ -55,9 +55,7 @@ class ChallengeSubmission(View):
             await interaction.response.send_message("User saved!", ephemeral=True)
             self.user = values[0]  # type: ignore
 
-    @select(
-        cls=Select, placeholder="Select the month of the challenge.", options=months
-    )
+    @select(cls=Select, placeholder="Month of the challenge.", options=months)
     async def select_month(self, interaction: Interaction, select_item: Select):
         self.month = select_item.values
         await interaction.response.send_message("Month saved!", ephemeral=True)
@@ -91,25 +89,26 @@ class ChallengeSubmission(View):
             return
 
         date_time = DateTime()
+        followup = interaction.followup
         await response.send_modal(date_time)
         await date_time.wait()
 
         self.time = date_time.time
         self.day = date_time.day
 
-        year = datetime.now().date().year
-        selected_time = f"{year}-{selected_month}-{self.day} {self.time}:00"
-        try:
-            selected_time = datetime.strptime(selected_time, "%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            return
-
         current_time = datetime.now()
+
+        year = current_time.date().year
+        selected_time = f"{year}-{selected_month}-{self.day} {self.time}:00"
+        selected_time = datetime.strptime(selected_time, "%Y-%m-%d %H:%M:%S")
+
         if selected_time < current_time:
+            await followup.send(
+                "Please choose a future/present time.", ephemeral=True
+            )
             return
 
         selected_time_str = selected_time.__str__()
-        followup = interaction.followup
 
         # If caller has match
         if await player_has_match_at_time(interaction.user.id, selected_time_str):
@@ -125,6 +124,7 @@ class ChallengeSubmission(View):
             )
             return
 
+        await followup.send("A challenge has been booked.")
         await self.disable_everything()
 
     @button(label="Cancel", style=ButtonStyle.grey)
@@ -150,19 +150,12 @@ class DateTime(Modal, title="Day and time of match"):
     async def on_submit(self, interaction: Interaction):
         response = interaction.response
         try:
-            challenge_datetime = datetime.strptime(
+            datetime.strptime(
                 f"{self.day.value} {self.time.value}", "%d %H:%M"
             )
         except ValueError:
             await response.send_message(
                 "Invalid day or time. Try again.", ephemeral=True
-            )
-            return
-
-        current_datetime = datetime.now()
-        if challenge_datetime < current_datetime:
-            await response.send_message(
-                "Please choose a future/present date.", ephemeral=True
             )
             return
 
