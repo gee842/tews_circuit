@@ -53,7 +53,7 @@ class ChallengeSubmission(View):
             )
         else:
             await interaction.response.send_message("User saved!", ephemeral=True)
-            self.user = values[0] # type: ignore
+            self.user = values[0]  # type: ignore
 
     @select(
         cls=Select, placeholder="Select the month of the challenge.", options=months
@@ -113,12 +113,16 @@ class ChallengeSubmission(View):
 
         # If caller has match
         if await player_has_match_at_time(interaction.user.id, selected_time_str):
-            await followup.send(f"You have a match on {selected_time_str}. Choose another time.")
+            await followup.send(
+                f"You have a match on {selected_time_str}. Choose another time."
+            )
             return
 
         # If challenged has match
         if await player_has_match_at_time(self.user.id, selected_time_str):  # type: ignore
-            await followup.send(f"{self.user} has a match on {selected_time_str}. Choose another time.")
+            await followup.send(
+                f"{self.user} has a match on {selected_time_str}. Choose another time."
+            )
             return
 
         await self.disable_everything()
@@ -156,20 +160,9 @@ class DateTime(Modal, title="Day and time of match"):
             return
 
         current_datetime = datetime.now()
-        current_day = current_datetime.date().day
-        if challenge_datetime.day < current_day:
-            await response.send_message("Choose a future/present day.", ephemeral=True)
-            return
-
-        current_hour = current_datetime.hour
-        if challenge_datetime.hour < current_hour:
-            await response.send_message("Choose a future/present hour.", ephemeral=True)
-            return
-
-        current_minute = current_datetime.minute
-        if challenge_datetime.minute < current_minute:
+        if challenge_datetime < current_datetime:
             await response.send_message(
-                "Choose a future/present minute.", ephemeral=True
+                "Please choose a future/present date.", ephemeral=True
             )
             return
 

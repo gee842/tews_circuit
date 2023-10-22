@@ -2,7 +2,7 @@
     - [x]  Make sure to handle cancellation properly, especially when "Cancel" is chosen in the view and when the user exits out of the modal with escape. First will result in error (no detriment to user), second will insert an entry in the database with None in one of the date-time components.
     - [x] Ensure there are checks in place to prevent double booking; a player shouldn't be able to have two matches scheduled for the same time.
     - [x] Checks to make sure the time booked isn't in the past
-        - The checks should be in terms of precedence. Meaning if the month isn't the current month, skip the check for days, it's unnecessary. Because if the current date is 22nd Oct 11:43, you cannot book a match on 22nd Nov 11:43.
+        - [x] The checks should be in terms of precedence. Meaning if the month isn't the current month, skip the check for days, it's unnecessary. Because if the current date is 22nd Oct 11:43, you cannot book a match on 22nd Nov 11:43.
     - [x] Handle automatic disqualification by checking for matches that are past due.
 - `finish_match`
     - [x] Figure out how to add buttons AFTER the user to challenge has been selected.
