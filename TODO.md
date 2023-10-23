@@ -17,5 +17,5 @@
     - [x] There is an error with Promotion. Apparently the rank is mistaken for a column in the table.
     - [x] Rank is not properly updated. Gold -> Emerald not taken into affect (this is a side effect of [this](https://github.com/gee842/tews_circuit/commit/1ca70950e23ecdb825f256b25e025ea7ba21a1b7)).
 - Cancelling matches
-    - [ ] Does not show the right challenger data.
+    - [x] Does not show the right challenger data.
         - If you're X and you run `cancel` you'll see "vs. Y at date" but if you're Y and you run the command you'll see "vs. Y at date." When it's supposed to be "vs. X at date." In addition to this, the ids are in the same position. If you're X you'll see the ID of Y, if you're Y you'll see the ID of Y.

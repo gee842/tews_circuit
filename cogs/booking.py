@@ -52,10 +52,10 @@ class Booking(commands.Cog):
         caller_id = interaction.user.id
         user_matches = []
         for challenger_id, challenged_id, date in matches:
-            user_to_mention = challenger_id
-
-            if caller_id == challenger_id:
+            if caller_id == int(challenger_id):
                 user_to_mention = challenged_id
+            else:
+                user_to_mention = challenger_id
 
             user_to_mention = await self.bot.fetch_user(user_to_mention)
             if user_to_mention is None:
@@ -65,8 +65,10 @@ class Booking(commands.Cog):
             option = (user_to_mention.global_name, challenged_id, date)
             user_matches.append(option)
 
-        print(f"Caller: {interaction.user}\n{user_matches}")
-
         cancel_match = CancelMatch(user_matches)
-        msg = "Keep in mind that once you select a match, it will be cancelled and it cannot be undone. You will need to re-book a match."
+        msg = (
+            "Keep in mind that once you select a match, "
+            + "it will be cancelled and it cannot be undone. "
+            + "You will need to re-book a match."
+        )
         await response.send_message(msg, view=cancel_match, ephemeral=True)
