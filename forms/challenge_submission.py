@@ -103,9 +103,7 @@ class ChallengeSubmission(View):
         selected_time = datetime.strptime(selected_time, "%Y-%m-%d %H:%M:%S")
 
         if selected_time < current_time:
-            await followup.send(
-                "Please choose a future/present time.", ephemeral=True
-            )
+            await followup.send("Please choose a future/present time.", ephemeral=True)
             return
 
         selected_time_str = selected_time.__str__()
@@ -126,6 +124,12 @@ class ChallengeSubmission(View):
 
         await followup.send("A challenge has been booked.")
         await self.disable_everything()
+
+        message = interaction.message
+        if message is None:
+            return 
+
+        await followup.edit_message(message.id, view=self)
 
     @button(label="Cancel", style=ButtonStyle.grey)
     async def cancel(self, interaction: Interaction, button: Button):
@@ -150,9 +154,7 @@ class DateTime(Modal, title="Day and time of match"):
     async def on_submit(self, interaction: Interaction):
         response = interaction.response
         try:
-            datetime.strptime(
-                f"{self.day.value} {self.time.value}", "%d %H:%M"
-            )
+            datetime.strptime(f"{self.day.value} {self.time.value}", "%d %H:%M")
         except ValueError:
             await response.send_message(
                 "Invalid day or time. Try again.", ephemeral=True
