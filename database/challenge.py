@@ -2,7 +2,6 @@ from typing import Tuple, Any
 
 from player import Player
 from database.utils import get_player_data
-from player.rank import Rank, determine_rank
 from . import insert_new_player, does_player_exist
 
 import asqlite
