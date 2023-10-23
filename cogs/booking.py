@@ -2,7 +2,7 @@ from database.utils import get_pending_matches
 
 import discord
 
-from discord import Embed, Interaction, SelectOption, app_commands
+from discord import Embed, Interaction, app_commands
 from discord.ext import commands
 
 from forms.cancel_match import CancelMatch
@@ -28,7 +28,7 @@ class Booking(commands.Cog):
         for count, data in enumerate(matches, start=1):
             challenger_id, challenged_id, date = data
             user_id = challenger_id
-            if user_id == caller.id:
+            if int(user_id) == caller.id:
                 user_id = challenged_id
 
             user = await self.bot.fetch_user(user_id)
