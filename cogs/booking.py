@@ -49,7 +49,8 @@ class Booking(commands.Cog):
         if guild is None:
             return
 
-        caller_id = interaction.user.id
+        user = interaction.user
+        caller_id = user.id
         user_matches = []
         for challenger_id, challenged_id, date in matches:
             if caller_id == int(challenger_id):
@@ -65,7 +66,7 @@ class Booking(commands.Cog):
             option = (user_to_mention.global_name, challenged_id, date)
             user_matches.append(option)
 
-        cancel_match = CancelMatch(user_matches)
+        cancel_match = CancelMatch(caller_id, user_matches)
         msg = (
             "Keep in mind that once you select a match, "
             + "it will be cancelled and it cannot be undone. "
