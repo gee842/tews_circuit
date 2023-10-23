@@ -5,6 +5,7 @@ import threading
 
 from cogs.utils import Utils
 from cogs.challenge import Challenge
+from cogs.booking import Booking
 
 import discord
 from discord.ext import commands
@@ -53,6 +54,7 @@ async def main():
         await bot.add_cog(Tews(bot))
         await bot.add_cog(Utils(bot))
         await bot.add_cog(Challenge(bot))
+        await bot.add_cog(Booking(bot))
 
         loop = asyncio.new_event_loop()
         thread = threading.Thread(target=start_loop, args=(loop,))

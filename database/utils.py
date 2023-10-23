@@ -59,12 +59,13 @@ async def get_pending_matches(uid: int):
         async with db.cursor() as cursor:
             sql = f"""
             SELECT
-                Challenged, Date
+                Challenger, Challenged, Date
             FROM
                 History
             WHERE
                 (Challenger = '{uid}' OR Challenged = '{uid}')
                 AND Finished = 0
+            ORDER BY Date ASC
             """
 
             result = await cursor.execute(sql)
