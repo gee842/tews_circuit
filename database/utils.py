@@ -89,5 +89,19 @@ async def player_has_match_at_time(uid: int, date: str) -> bool:
             return True
 
 
+async def cancel_match(uid: int, date: str):
+    async with asqlite.connect("database.db") as db:
+        async with db.cursor() as cursor:
+            sql = f"""
+            DELETE FROM History 
+            WHERE
+                (Challenger = "{uid}"
+                OR Challenged = "{uid}")
+                AND Date = "{date}";
+            """
+
+            await cursor.execute(sql)
+
+
 if __name__ == "__main__":
     pass

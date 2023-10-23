@@ -25,6 +25,7 @@ def start_loop(loop):
 
 intents = discord.Intents.default()
 intents.message_content = True
+# intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
@@ -46,6 +47,7 @@ class Tews(commands.Cog):
 
 async def main():
     await verify_database()
+    await disqualifications()
 
     token = os.environ["DISCORD_TOKEN"]
     setup_logging(level=logging.INFO, root=False)

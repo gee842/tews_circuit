@@ -9,11 +9,13 @@
     - [x] If the match is with yourself or a bot, the match with yourself in it will be marked as finished.
     - [x] Add checks for when the incorrect user is selected.
     - [x] Streak bonus is applied incorrectly.
-- Point calculation
-    - [x] The message for point updates after a match is bad, update it.
+- Point calculation [x] The message for point updates after a match is bad, update it.
     - [x] Add different point calculation when vs people who are higher/lower rank than you.
         - [x] Problem with rank bonuses. The bonuses are applied inversly. Meaning higher ranks will earn more if they beat lower ranking players and vice versa.
             - Turns out the problem was due to the values of the enum being set incorrectly. A slight detail but something important. Fixed in [1ca7095](https://github.com/gee842/tews_circuit/commit/1ca70950e23ecdb825f256b25e025ea7ba21a1b7)
 - Promotion
     - [x] There is an error with Promotion. Apparently the rank is mistaken for a column in the table.
     - [x] Rank is not properly updated. Gold -> Emerald not taken into affect (this is a side effect of [this](https://github.com/gee842/tews_circuit/commit/1ca70950e23ecdb825f256b25e025ea7ba21a1b7)).
+- Cancelling matches
+    - [ ] Does not show the right challenger data.
+        - If you're X and you run `cancel` you'll see "vs. Y at date" but if you're Y and you run the command you'll see "vs. Y at date." When it's supposed to be "vs. X at date." In addition to this, the ids are in the same position. If you're X you'll see the ID of Y, if you're Y you'll see the ID of Y.
