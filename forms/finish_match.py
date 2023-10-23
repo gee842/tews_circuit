@@ -63,6 +63,6 @@ class FinishMatch(View):
         caller_update = await update_player_info(loser, winner, False)
 
         await interaction.response.send_message(
-            f"{self.selected_user}: {selected_user_update}\n"
-            + f"{self.caller}: {caller_update}"
+            f"{self.selected_user.global_name}: {selected_user_update}\n"
+            + f"{self.caller.global_name}: {caller_update}"
         )
