@@ -2,6 +2,11 @@ from .rank import Rank, determine_rank
 
 
 class Player:
+    """
+    Represents a player. Mainly used for point calculation and for pretty printing
+    player information to the user.
+    """
+
     def __init__(self, uid: int, points: int, streak: int):
         self.uid = uid
         self.points = points
@@ -13,11 +18,11 @@ class Player:
 
     def has_rank_changed(self, points: int) -> str:
         """
-        Used to determine if a player's rank has changed.
-        self.rank would be the newest rank, and points would be the
-        player's previous points before calculation.
+        keyword arguments:
+        points -- The player's points BEFORE point calculation.
         """
 
+        # self.rank is the player's CURRENT rank.
         other = determine_rank(points)
         msg = f"{other.name} -> {self.rank.name}."
         if other < self.rank:
