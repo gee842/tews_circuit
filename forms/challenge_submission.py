@@ -99,6 +99,7 @@ class ChallengeSubmission(View):
         current_time = datetime.now()
 
         year = current_time.date().year
+        # Format date-time data into ISO 8601
         selected_time = f"{year}-{selected_month}-{self.day} {self.time}:00"
         selected_time = datetime.strptime(selected_time, "%Y-%m-%d %H:%M:%S")
 
@@ -147,6 +148,7 @@ class ChallengeSubmission(View):
         self.stop()
 
 
+# A follow up modal to the view. As TextInputs are exclusive to modals.
 class DateTime(Modal, title="Day and time of match"):
     time = TextInput(label="Time of match (24 hour)", placeholder="18:30, 23:30")
     day = TextInput(label="Day of the month", placeholder="20, 31")
