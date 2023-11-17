@@ -1,3 +1,7 @@
+"""
+Used for challenges. Includes challenging and opponent and finish a match.
+"""
+
 from datetime import datetime
 
 from forms.challenge_submission import ChallengeSubmission
@@ -36,6 +40,9 @@ class Challenge(commands.Cog):
 
         if not chal_sub.cancelled:
             year = datetime.now().date().year
+            # Create a date with the ISO format of 8601
+            # for compatability with SQLITE3's Date method
+            # for comparison.
             date = f"{year}-{chal_sub.month[0]}-{chal_sub.day} {chal_sub.time}:00"  # type: ignore
 
             await new_challenge(date, interaction.user, chal_sub.user)  # type: ignore

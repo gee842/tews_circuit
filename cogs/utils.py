@@ -23,7 +23,7 @@ class Utils(commands.Cog):
         spec: Optional[Literal["sync", "copy", "reset"]] = None,
     ) -> None:
         if ctx.author.id != 275797064674312193:
-            print("Only Alphabets is allowed to use this command.")
+            print("Lacking permissions")
             return
 
         tree = ctx.bot.tree

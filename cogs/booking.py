@@ -1,3 +1,8 @@
+"""
+This file is for challenge bookings. Methods include `pending_matches` and `cancel`.
+The other functions would simply be necessary ones to make sure this runs.
+"""
+
 from database.utils import get_pending_matches
 
 import discord
