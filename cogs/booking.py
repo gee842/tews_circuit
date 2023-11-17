@@ -58,6 +58,11 @@ class Booking(commands.Cog):
         caller_id = user.id
         user_matches = []
         for challenger_id, challenged_id, date in matches:
+            # Determines who the player is facing in challenge.
+            # To display correct information when selecting which
+            # match it is to cancel. For more information refer to
+            # https://github.com/gee842/tews_circuit/blob/master/TODO.md
+            # then Cancelling matches
             if caller_id == int(challenger_id):
                 user_to_mention = challenged_id
             else:
