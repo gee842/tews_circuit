@@ -1,3 +1,8 @@
+"""
+Utility functions to make sure the bot is working properly
+and to sync whatever slash commands the bot has.
+"""
+
 from typing import Optional, Literal
 
 import discord
@@ -22,6 +27,17 @@ class Utils(commands.Cog):
         guilds: Greedy[discord.Object],
         spec: Optional[Literal["sync", "copy", "reset"]] = None,
     ) -> None:
+        """
+        Used to manage if a guild has access to the bot's slash commands.
+
+        When called without a guild id specified, the command assumes you want to make
+        changes to the guild the command is called from.
+
+        Options:
+            - sync: Syncs all comands to the current guild.
+            - copy: Copy all commands to every guild the bot is in.
+            - reset: Removes all commands from every guild.
+        """
         if ctx.author.id != 275797064674312193:
             print("Lacking permissions")
             return
