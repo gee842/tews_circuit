@@ -11,6 +11,8 @@ from database.challenge import (
 
 
 class FinishMatch(View):
+    """This view is used by the `/finish` command."""
+
     caller: User | Member = None  # type: ignore
     selected_user: User | Member = None  # type: ignore
 
@@ -49,10 +51,14 @@ class FinishMatch(View):
         caller_update = await update_player_info(winner, loser, True)
         selected_user_update = await update_player_info(loser, winner, False)
 
+        followup = interaction.followup
         await interaction.response.send_message(
             f"{self.caller}: {caller_update}\n"
             + f"{self.selected_user}: {selected_user_update}"
         )
+
+        self.disable_everything()
+        await followup.edit_message(interaction.message.id, view=self)  # type: ignore
 
     @button(label="You lost :(")
     async def selected_user_wins(self, interaction: Interaction, button: Button):
@@ -62,7 +68,16 @@ class FinishMatch(View):
         selected_user_update = await update_player_info(winner, loser, True)
         caller_update = await update_player_info(loser, winner, False)
 
+        followup = interaction.followup
         await interaction.response.send_message(
             f"{self.selected_user.global_name}: {selected_user_update}\n"
             + f"{self.caller.global_name}: {caller_update}"
         )
+
+        await followup.edit_message(interaction.message.id, view=self)  # type: ignore
+
+    def disable_everything(self):
+        for item in self.children:
+            item.disabled = True  # type: ignore
+
+        self.stop()
