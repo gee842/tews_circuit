@@ -4,7 +4,11 @@ from asqlite import Cursor
 from player.player import Player
 
 
-async def verify_database():
+async def ensure_db_setup():
+    """
+    Setups the database. Includes creation of db and tables and
+    inserting default values such as ranks.
+    """
     async with asqlite.connect("database.db") as db:
         async with db.cursor() as cursor:
             results = await cursor.execute("SELECT name FROM sqlite_master")

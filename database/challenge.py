@@ -27,6 +27,8 @@ async def new_challenge(date: str, challenger: User, challenged: User):
 async def has_match_with_player(user1: int, user2: int) -> Tuple[Any, Any, Any] | None:
     async with asqlite.connect("database.db") as db:
         async with db.cursor() as cursor:
+            # The purpose of querying the Challenger and Challenged twice is because
+            # the user id's received is unknown to be either one.
             sql = """
             SELECT * 
             FROM History 
@@ -63,7 +65,12 @@ async def finish_match(challenger: int, challenged: int, date: str):
             await cursor.execute(sql, (challenger, challenged, date))
 
 
-def create_sql(win: bool, new_points: int, rank_update: str, player: Player):
+def update_battle_info(win: bool, new_points: int, rank_update: str, player: Player):
+    """
+    Used to create an SQL query to update the player's
+    'battle' information. Meaning their rank, point totals, win streak, etc.
+    """
+
     if win:
         streak_update = """
            WinStreak = WinStreak + 1, 
@@ -75,19 +82,23 @@ def create_sql(win: bool, new_points: int, rank_update: str, player: Player):
            WinStreak = 0,
        """
 
+    # Pieces together an UPDATE query to update player information.
+    # A ternary conditional operator is also used
     set_query = f"""
-        {'Win = Win + 1' if win else 'Loss = Loss + 1'},
+        {'Win = Win + 1' if win else 'Loss = Loss + 1'}, 
         {streak_update}
         Points = {new_points}
     """
 
+    # Add the information to the query to update the player's rank
+    # if neccessary.
     if rank_update != "":
         set_query += f",\nRank = '{player.rank.name}'"
 
     return set_query
 
 
-async def update_player_info(user: int, other: int, win: bool):
+async def update_player_info(user: int, other: int, win: bool) -> str:
     async with asqlite.connect("database.db") as db:
         async with db.cursor() as cursor:
             p1 = await get_player_data(cursor, user)
@@ -98,7 +109,7 @@ async def update_player_info(user: int, other: int, win: bool):
 
             point_update = f"{ori_points} -> {new_points}"
             rank_update = p1.has_rank_changed(int(ori_points))
-            set_query = create_sql(win, new_points, rank_update, p1)
+            set_query = update_battle_info(win, new_points, rank_update, p1)
 
             sql = f"""
             UPDATE Players
@@ -110,12 +121,14 @@ async def update_player_info(user: int, other: int, win: bool):
 
             await cursor.execute(sql, user)
 
+            # This return is used for pretty output and sent to the user.
             return f"{point_update}. {rank_update}"
 
 
 async def disqualifications():
     async with asqlite.connect("database.db") as db:
         async with db.cursor() as cursor:
+            # This is simply to adhere to PEP8 character limit convention.
             condition = "Date < Date('now') AND Finished = 0"
             sql = f"""
             SELECT

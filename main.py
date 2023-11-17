@@ -11,7 +11,7 @@ import discord
 from discord.ext import commands
 from discord.utils import setup_logging
 
-from database import verify_database
+from database import ensure_db_setup
 from database.challenge import disqualifications
 
 
@@ -49,7 +49,7 @@ class Tews(commands.Cog):
 
 
 async def main():
-    await verify_database()
+    await ensure_db_setup()
     await disqualifications()
 
     token = os.environ["DISCORD_TOKEN"]
