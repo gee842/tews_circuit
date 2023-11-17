@@ -14,20 +14,23 @@ from discord.utils import setup_logging
 from database import verify_database
 from database.challenge import disqualifications
 
+
 async def process_disqualifications():
     while True:
         await asyncio.sleep(60 * 5)
         await disqualifications()
 
+
 def start_loop(loop):
     asyncio.set_event_loop(loop)
     loop.run_until_complete(process_disqualifications())
+
 
 intents = discord.Intents.default()
 intents.message_content = True
 # intents.members = True
 
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix=">!tews-", intents=intents)
 
 
 class Tews(commands.Cog):
