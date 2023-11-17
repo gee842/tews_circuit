@@ -22,6 +22,7 @@ async def process_disqualifications():
 
 
 def start_loop(loop):
+    """Starts a loop to check for past matches and to disqualifiy involved players."""
     asyncio.set_event_loop(loop)
     loop.run_until_complete(process_disqualifications())
 
@@ -61,6 +62,7 @@ async def main():
         await bot.add_cog(Challenge(bot))
         await bot.add_cog(Booking(bot))
 
+        # Starts the disqualification check loop
         loop = asyncio.new_event_loop()
         thread = threading.Thread(target=start_loop, args=(loop,))
         thread.start()
